@@ -1,0 +1,127 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro" name="diff_drive_robot">
+
+	<xacro:include filename="$(find diff_drive_pkg)/xacro/v04_add_gazebo_LiDAR/material_colors.xacro" />
+	<xacro:include filename="$(find diff_drive_pkg)/xacro/v04_add_gazebo_LiDAR/parts_macro.xacro" />
+	<xacro:include filename="$(find diff_drive_pkg)/xacro/v04_add_gazebo_LiDAR/joints_macro.xacro" />
+	<xacro:include filename="$(find diff_drive_pkg)/xacro/v04_add_gazebo_LiDAR/gazebo_material_macro.xacro" />
+	<xacro:include filename="$(find diff_drive_pkg)/xacro/v04_add_gazebo_LiDAR/gazebo_diffJoint_macro.xacro" />
+	<xacro:include filename="$(find diff_drive_pkg)/xacro/v04_add_gazebo_LiDAR/gazebo_LiDAR_macro.xacro" />
+
+	<!-- ############## リンクの生成 ############### -->
+  <link name="base_link"/>
+	<!-- ボディ -->
+	<xacro:link_generator name="body" mass="1.0" color_name="red">
+        <cylinder radius="0.2" length="0.15" />
+        <inertia ixx="0.0118750" iyy="0.0118750" izz="0.0200000" ixy="0" ixz="0" iyz="0"/>
+	</xacro:link_generator>
+	<!-- 左車輪 -->
+	<xacro:link_generator name="wheel_left" mass="0.5" color_name="blue">
+		<cylinder radius="0.15" length="0.05"/>
+        <inertia ixx="0.0029167" iyy="0.0029167" izz="0.0056250" ixy="0" ixz="0" iyz="0"/>
+	</xacro:link_generator>
+	<!-- 右車輪 -->
+	<xacro:link_generator name="wheel_right" mass="0.5" color_name="blue">
+		<cylinder radius="0.15" length="0.05"/>
+        <inertia ixx="0.0029167" iyy="0.0029167" izz="0.0056250" ixy="0" ixz="0" iyz="0"/>
+	</xacro:link_generator>
+	<!-- 前方キャスター -->
+	<xacro:link_generator name="caster_forward" mass="0.5" color_name="green">
+		<sphere radius="0.05"/>
+        <inertia ixx="3.000e-4" iyy="3.000e-4" izz="3.000e-4" ixy="0" ixz="0" iyz="0"/>
+	</xacro:link_generator>
+	<!-- 後方キャスター -->
+	<xacro:link_generator name="caster_backward" mass="0.5" color_name="black">
+		<sphere radius="0.05"/>
+        <inertia ixx="3.000e-4" iyy="3.000e-4" izz="3.000e-4" ixy="0" ixz="0" iyz="0"/>
+	</xacro:link_generator>
+	<!-- LiDAR台 -->
+	<xacro:link_generator name="lidar_base" mass="0.15" color_name="yellow">
+		<box size="0.1 0.1 0.1"/>
+		<inertia ixx="0.25" iyy="0.25" izz="0.25" ixy="0" ixz="0" iyz="0"/>
+	</xacro:link_generator>
+	<!-- LiDAR -->
+	<xacro:link_generator name="lidar_link" mass="0.05" color_name="purple">
+		<cylinder radius="0.05" length="0.05"/>
+		<inertia ixx="0.125" iyy="0.125" izz="0.188" ixy="0" ixz="0" iyz="0"/>
+	</xacro:link_generator>
+
+	<!-- ############## ジョイントの生成 ############### -->
+	<!-- ベース・ボディ -->
+	<xacro:fixed_joint name="base_joint" parent="base_link" child="body">
+        <origin xyz="0 0 0.15" rpy="0 0 0"/>
+	</xacro:fixed_joint>
+	<!-- ボディ・左車輪 -->
+	<xacro:continuous_joint name="wheel_left_joint" parent="body" child="wheel_left">
+        <origin xyz="0 -0.225 0" rpy="1.57 0 0"/>
+        <axis xyz="0 0 1"/>
+	</xacro:continuous_joint>
+	<!-- ボディ・右車輪 -->
+	<xacro:continuous_joint name="wheel_right_joint" parent="body" child="wheel_right">
+        <origin xyz="0 0.225 0" rpy="1.57 0 0"/>
+        <axis xyz="0 0 1"/>
+	</xacro:continuous_joint>
+	<!-- ボディ・前方キャスター -->
+	<xacro:fixed_joint name="caster_forward_joint" parent="body" child="caster_forward">
+        <origin xyz="-0.15 0 -0.1" rpy="0 0 0"/>
+	</xacro:fixed_joint>
+	<!-- ボディ・後方キャスター -->
+	<xacro:fixed_joint name="caster_backward_joint" parent="body" child="caster_backward">
+        <origin xyz="0.15 0 -0.1" rpy="0 0 0"/>
+	</xacro:fixed_joint>
+	<!-- ボディ・LiDAR台 -->
+	<xacro:fixed_joint name="lidar_base_joint" parent="body" child="lidar_base">
+        <origin xyz="0 0 0.125" rpy="0 0 0"/>
+	</xacro:fixed_joint>
+	<!-- LiDAR台・LiDAR -->
+	<xacro:fixed_joint name="lidar_joint" parent="lidar_base" child="lidar_link">
+        <origin xyz="0 0 0.075" rpy="0 0 0"/>
+	</xacro:fixed_joint>
+
+	<!-- ############## Gazebo上のパーツ設定 ############### -->
+	<xacro:gazebo_material ref="body" mu="0.2">
+		<material>Gazebo/Red</material>
+	</xacro:gazebo_material>
+	<xacro:gazebo_material ref="wheel_left" mu="0.2">
+		<material>Gazebo/Blue</material>
+	</xacro:gazebo_material>
+	<xacro:gazebo_material ref="wheel_right" mu="0.2">
+		<material>Gazebo/Blue</material>
+	</xacro:gazebo_material>
+	<xacro:gazebo_material ref="caster_forward" mu="0.0">
+		<material>Gazebo/Green</material>
+	</xacro:gazebo_material>
+	<xacro:gazebo_material ref="caster_backward" mu="0.0">
+		<material>Gazebo/Black</material>
+	</xacro:gazebo_material>
+	<xacro:gazebo_material ref="lidar_base" mu="0.0">
+		<material>Gazebo/Yellow</material>
+	</xacro:gazebo_material>
+	<xacro:gazebo_material ref="lidar_link" mu="0.0">
+		<material>Gazebo/Purple</material>
+	</xacro:gazebo_material>
+
+	<!-- ############## Gazebo上の差動駆動設定 ############### -->
+	<xacro:gazebo_diff_Joint leftJoint_name="wheel_left_joint" rightJoint_name="wheel_right_joint" base_name="base_link" tread="0.45" wheel_Diameter="0.30"/>
+
+	<!-- ############## Gazebo上のLiDAR設定 ############### -->
+	<xacro:gazebo_LiDAR 
+		ref="lidar_link" 
+		sensor_name="ydlidar_sensor" 
+		viz="true" 
+		update_rate="40"
+		sample_N="700" 
+		scan_resolution="1"
+		min_angle="-3.14159265358979"
+		max_angle="3.14159265358979"
+		min_range="0.12"
+		max_range="8"
+		range_resolution="0.72"
+		plugIn_name="gazebo_ros_ydlidar_controller"
+		topic_name="/scan"
+		frame_name="lidar_link"
+																		>
+		<pose>0 0 0 0 0 0</pose>
+	</xacro:gazebo_LiDAR>
+	
+</robot>

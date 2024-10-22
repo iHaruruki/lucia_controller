@@ -1,0 +1,38 @@
+<!--色情報に関するマクロファイル-->
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+
+<!-- Define Material Colors -->
+<material name="white">
+    <color rgba="1.0 1.0 1.0 1.0"/>
+</material>
+
+<material name="red">
+    <color rgba="1.0 0.0 0.0 1.0"/>
+</material>
+
+<material name="green">
+    <color rgba="0.0 1.0 0.0 1.0"/>
+</material>
+
+<material name="blue">
+    <color rgba="0.0 0.0 1.0 1.0"/>
+</material>
+
+<material name="yellow">
+    <color rgba="1.0 1.0 0.0 1.0"/>
+</material>
+
+<material name="cyan">
+    <color rgba="0.0 1.0 1.0 1.0"/>
+</material>
+
+<material name="purple">
+    <color rgba="1.0 0.0 1.0 1.0"/>
+</material>
+
+<material name="black">
+    <color rgba="0.0 0.0 0.0 1.0"/>
+</material>
+
+</robot>
