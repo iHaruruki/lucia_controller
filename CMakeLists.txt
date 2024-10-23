@@ -23,8 +23,8 @@ endforeach()
 add_library(
   lucia_controller
   SHARED
-  hardware/hardwareHandler.cpp
-  hardware/controller.cpp
+  #hardware/hardwareHandler.cpp
+  #hardware/controller.cpp
 )
 target_compile_features(lucia_controller PUBLIC cxx_std_17)
 target_include_directories(lucia_controller PUBLIC 
@@ -57,7 +57,7 @@ install(
   DESTINATION share/lucia_controller
 )
 install(TARGETS lucia_controller
-  EXPORT export_${PROJECT_NAME}
+  EXPORT export_lucia_controller
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
@@ -82,5 +82,5 @@ if(BUILD_TESTING)
 endif()
 
 ament_export_targets(export_lucia_controller HAS_LIBRARY_TARGET)
-ament_export_targets(${THIS_PACKAGE_INCLUDE_DEPENDS})
+ament_export_dependencies(${THIS_PACKAGE_INCLUDE_DEPENDS})
 ament_package()
