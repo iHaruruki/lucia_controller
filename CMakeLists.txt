@@ -6,7 +6,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 # find dependencies
-set(THIS_PACJAGE_INCLUDE_DEPENDS
+set(THIS_PACKAGE_INCLUDE_DEPENDS
   hardware_interface
   pluginlib
   rclcpp
@@ -15,7 +15,7 @@ set(THIS_PACJAGE_INCLUDE_DEPENDS
 )
 
 find_package(ament_cmake REQUIRED)
-foreach(Deoendency IN ITMES ${THIS_PACKAGE_INCLUDE_DEPENDS})
+foreach(Dependency IN ITEMS ${THIS_PACKAGE_INCLUDE_DEPENDS})
   find_package(${Dependency} REQUIRED)
 endforeach()
 
@@ -23,7 +23,7 @@ endforeach()
 add_library(
   lucia_controller
   SHARED
-  hardware/lucia_controller.cpp
+  hardware/controller.cpp
 )
 target_compile_features(lucia_controller PUBLIC cxx_std_17)
 target_include_directories(lucia_controller PUBLIC 
@@ -31,7 +31,7 @@ target_include_directories(lucia_controller PUBLIC
   $<INSTALL_INTERFACE:include/lucia_controller>
 )
 
-ament_target_dipendencies(
+ament_target_dependencies(
   lucia_controller PUBLIC
   ${THIS_PACKAGE_INCLUDE_DEPENDS}
 )
@@ -41,14 +41,14 @@ target_link_libraries(lucia_controller PUBLIC serial)
 target_compile_definitions(lucia_controller PRIVATE "LUCIA_CONTROLLER_BUILDING_DLL")
 
 # Export hardware plugins
-pluginlib_export_plugin_description_file(hardware_interface hardware_plugin.xml)
+pluginlib_export_plugin_description_file(hardware_interface lucia_controller.xml)
 
 install(
   DIRECTORY hardware/include/
   DESTINATION include/lucia_controller
 )
 install(
-  DERECTORY description/ros2_control description/urdf
+  DIRECTORY description/ros2_control description/urdf
   DESTINATION share/lucia_controller
 )
 install(
@@ -64,6 +64,7 @@ install(TARGETS lucia_controller
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
+  #find_package(REQUIRE_PACKAGE REQUIRED)
   # the following line skips the linter which checks for copyrights
   # comment the line when a copyright and license is added to all source files
   set(ament_cmake_copyright_FOUND TRUE)
