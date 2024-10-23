@@ -1,0 +1,7 @@
+<library path="lucia_controller">
+  <class name="lucia_controller/luciaControllerHardware" type="lucia_controller::luciaControllerHardware" base_class_type="hardware_interface::SystemInterface">
+    <description>
+      lucia controller hardware.
+    </description>
+  </class>
+</library>
