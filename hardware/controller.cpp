@@ -9,10 +9,10 @@
 #include <nav_msgs/msg/odometry.hpp>
 #include <vector>
 
-class YarpReceiver : public rclcpp::Node
+class lucia_controller : public rclcpp::Node
 {
 public:
-    YarpReceiver()
+    lucia_controller()
     : Node("yarp_receiver")
     {
         RCLCPP_INFO(this->get_logger(), "YARP Receiver Node has been started.");
@@ -33,7 +33,7 @@ public:
         // Create a timer to periodically check for messages
         timer_ = this->create_wall_timer(
             std::chrono::seconds(1),
-            std::bind(&YarpReceiver::receive_message, this)
+            std::bind(&lucia_controller::receive_message, this)
         );
 
         // Initialize ROS publisher
@@ -41,11 +41,11 @@ public:
         odom_publisher_ = this->create_publisher<nav_msgs::msg::Odometry>("odometry", 50); //odometry
         // cmd_vel subscriber
         cmd_subscriber_ = this->create_subscription<geometry_msgs::msg::Twist>(
-            "cmd_vel", 50, std::bind(&YarpReceiver::cmd_callback, this, std::placeholders::_1)
+            "cmd_vel", 50, std::bind(&lucia_controller::cmd_callback, this, std::placeholders::_1)
         );
     }
 
-    /*~YarpReceiver()
+    /*~lucia_controller()
     {
         port.close();
         p_cmd.close();
@@ -137,7 +137,7 @@ private:
 int main(int argc, char * argv[])
 {
     rclcpp::init(argc, argv);
-    auto node = std::make_shared<YarpReceiver>();
+    auto node = std::make_shared<lucia_controller>();
 
     rclcpp::Rate rate(20);
     while(rclcpp::ok())
