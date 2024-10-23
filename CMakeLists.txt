@@ -23,6 +23,7 @@ endforeach()
 add_library(
   lucia_controller
   SHARED
+  hardware/hardwareHandler.cpp
   hardware/controller.cpp
 )
 target_compile_features(lucia_controller PUBLIC cxx_std_17)
@@ -65,6 +66,11 @@ install(TARGETS lucia_controller
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   #find_package(REQUIRE_PACKAGE REQUIRED)
+  #find_package(pluginlib REQUIRED)
+  #find_package(hardware_interface REQUIRED)
+  #find_package(rclcpp REQUIRED)
+  #find_package(rclcpp_lifecycle REQUIRED)
+  #find_package(tf2 REQUIRED)
   # the following line skips the linter which checks for copyrights
   # comment the line when a copyright and license is added to all source files
   set(ament_cmake_copyright_FOUND TRUE)
