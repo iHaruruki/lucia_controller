@@ -12,6 +12,7 @@
 
 int main(int argc, char * argv[])
 {
+    /*----------YARP Initialize----------*/
 	yarp::os::Network yarp;
 
 	// Open YARP port
@@ -24,7 +25,16 @@ int main(int argc, char * argv[])
     yarp::os::Network::connect("/remoteController/command:o","/vehicleDriver/remote:i");    //motor command
     yarp::os::Network::connect("/vehicleDriver/encoder:o", "/remoteController/encoder:i");  //encoder reading
 
-   	while(true)
+    /*----------ROS2 Initialize----------*/
+    rclcpp::init(argc, argv);   //Node initialize
+    auto node = rclcpp::Node::make_shared("controller"); //Node create
+    //create publisher
+
+    //create subscriber
+
+    rclcpp::WallRate loop_rate(100); //loop rate 100Hz
+
+   	while(rclcpp::ok())
     {
         yarp::os::Bottle* bt = p_enc.read(false);
         std::vector<double> enc(4);
@@ -59,6 +69,7 @@ int main(int argc, char * argv[])
             << cmd[2] << " " 
             << cmd[3] << std::endl;
         yarp::os::Time::delay(0.05);
+        loop_rate.sleep();  //coodinate with loop_rate
     }	
 
     p_cmd.close();
