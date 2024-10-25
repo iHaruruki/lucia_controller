@@ -108,6 +108,7 @@ int main(int argc, char * argv[])
         odom_msg.twist.twist.angular.z = vth;
 
         odom_publisher->publish(odom_msg);
+        RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Send velocity command: linear.x=%f, angular.z=%f", odom_msg.twist.twist.linear.x, odom_msg.twist.twist.angular.z);
 
         yarp::os::Time::delay(0.05);
         loop_rate.sleep();  //coodinate with loop_rate
