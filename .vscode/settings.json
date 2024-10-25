@@ -8,5 +8,10 @@
         "/home/peach/ros2_ws/src/install/urdf_tutorial_r2d2/lib/python3.10/site-packages",
         "/opt/ros/humble/lib/python3.10/site-packages",
         "/opt/ros/humble/local/lib/python3.10/dist-packages"
-    ]
+    ],
+    "files.associations": {
+        "*.tcc": "cpp",
+        "deque": "cpp",
+        "vector": "cpp"
+    }
 }
