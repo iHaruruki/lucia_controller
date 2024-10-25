@@ -1,5 +1,7 @@
-//
-//
+#include <yarp::os::all.h>
+#include <yarp::os::Network.h>
+#include <yarp::os::Port.h>
+#include <yarp::os::Bottle.h>
 
 #include <string>
 #include <thread>
@@ -42,7 +44,13 @@ namespace robot_controller
         double floatData;
     };
 
-    //struct PorsedSerialData
+    struct PorsedYarpData
+    {
+        char command;
+        int count;
+        std::string rawDara;
+        ParsedData data[4];
+    }
 
     class HardwareHandler
     {
@@ -60,12 +68,13 @@ namespace robot_controller
         HardwareStatus status = NOT_INITIALIZED;
         std::string portname;
         std::thread *serialThread;
-        //LibSerial::SerialPort Port;
+        yarp::os::BufferedPort<yarp::os::Bottle> p_cmd; //motor command
+        yarp::os::BufferedPort<yarp::os::Bottle> p_enc; //encoder reading
 
         char buffer[256];
         int index = 0;
 
-        bool serialCheck();
-        //ParsedSerialData parseSerialData();
+        bool YarpCheck();
+        ParsedYarplData parseYarpData();
     };
 } // namespace robot_controller
