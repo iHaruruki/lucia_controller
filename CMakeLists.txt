@@ -18,6 +18,7 @@ find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
 
 add_executable(lucia_controller hardware/controller.cpp)
 ament_target_dependencies(lucia_controller 
@@ -27,15 +28,15 @@ ament_target_dependencies(lucia_controller
   nav_msgs
 )
 
-#add_executable(wheel_odometry hardware/wheel_odometry.cpp)
-#ament_target_dependencies(wheel_odometry 
-#  rclcpp 
-#  std_msgs 
-#  geometry_msgs 
-#  nav_msgs
-#  sensor_msgs
-#  tf2_ros 
-#)
+add_executable(wheel_odometry hardware/wheel_odometry.cpp)
+ament_target_dependencies(wheel_odometry 
+  rclcpp 
+  std_msgs 
+  geometry_msgs 
+  nav_msgs
+  sensor_msgs
+  tf2_ros
+)
 
 # YARPのターゲットをリンク
 target_link_libraries(lucia_controller 
