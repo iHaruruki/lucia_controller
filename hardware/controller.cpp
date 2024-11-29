@@ -28,20 +28,35 @@ public:
     OdomPublisher()
     : Node("odom_publisher"), x_(0.0), y_(0.0), th_(0.0)
     {
-        //ROS2パブリシャーとサブスクリバーの作成
+        //YARP networkの接続確認（8秒経過しても接続できない場合はエラーを出力）
+        yarp::os::Network yarp;
+        if(!yarp.checkNetwork(8.0)){
+            RCLCPP_ERROR(this->get_logger(), "YARP network is not available");
+            throw std::runtime_error("YARP network is not available");
+        }
+
+        //ROS2 PublisherとSubscriberの作成
         odom_publisher_ = this->create_publisher<nav_msgs::msg::Odometry>("odom",10);
         velocity_subscriber_ = this->create_subscription<geometry_msgs::msg::Twist>(
             "/cmd_vel", 10, std::bind(&OdomPublisher::velocity_callback, this, std::placeholders::_1));
 
-        timer_ = this->create_wall_timer(10ms, std::bind(&OdomPublisher::timer_callback, this));
+        timer_ = this->create_wall_timer(50ms, std::bind(&OdomPublisher::timer_callback, this));
 
-        //YARPの初期化とポートの設定
+        //YARPポートの設定
         p_cmd.open("/remoteController/command:o");  //motor command
         p_enc.open("/remoteController/encoder:i");  //encoder reading
 
-        //ポートの接続
-        yarp::os::Network::connect("/remoteController/command:o","/vehicleDriver/remote:i");    //motor command
-        yarp::os::Network::connect("/vehicleDriver/encoder:o", "/remoteController/encoder:i");  //encoder reading
+        //ポートの接続-Lucia側のYARPポートと接続する
+        bool cmd_connected = yarp::os::Network::connect("/remoteController/command:o","/vehicleDriver/remote:i");    //motor command
+        bool enc_connected = yarp::os::Network::connect("/vehicleDriver/encoder:o", "/remoteController/encoder:i");  //encoder reading
+
+        //ポートの接続確認
+        if(!cmd_connected){
+            RCLCPP_ERROR(this->get_logger(), "Failed to connect to /vehicleDriver/remote:i");
+        }
+        if(!enc_connected){
+            RCLCPP_ERROR(this->get_logger(), "Failed to connect to /vehicleDriver/encoder:o");
+        }
     }
 
     ~OdomPublisher()
@@ -53,6 +68,8 @@ public:
 private:
     void velocity_callback(const geometry_msgs::msg::Twist::SharedPtr msg)
     {
+        RCLCPP_INFO(this->get_logger(), "Receive velocity command: linear.x=%f, angular.z=%f", msg->linear.x, msg->angular.z);
+
         //速度指令の制限
         if(msg->linear.x > 0.5) msg->linear.x = 0.5;
         if(msg->linear.x < -0.5) msg->linear.x = -0.5;
@@ -72,15 +89,19 @@ private:
         }
         p_cmd.write();
 
-        RCLCPP_INFO(this->get_logger(), "Send velocity command: linear.x=%f, angular.z=%f", cmd[0], cmd[2]);
+        RCLCPP_INFO(this->get_logger(), "Send velocity command to YARP: linear.x=%f, angular.z=%f", cmd[0], cmd[2]);
     }
 
     void timer_callback()
     {
+        RCLCPP_INFO(this->get_logger(), "Timer callback triggered");
+
         //エンコーダの読み取り
         yarp::os::Bottle* bt = p_enc.read(false);
         if(bt != nullptr)
         {
+            RCLCPP_INFO(this->get_logger(), "Encoder data received");
+
             //エンコーダデータの取得
             std::vector<double> enc(4);
             for(size_t i = 0; i < enc.size(); i++){
@@ -93,7 +114,7 @@ private:
             double wheel_base = 0.5; //車輪間距離
 
             //オドメトリの計算
-            double dt = 0.05;   //タイマー周期と一致させること
+            double dt = 0.05;   //タイマー周期と一致させること　timer_ 
             double vx = (right_vel_speed + left_vel_speed) / 2.0;
             double vy = 0.0;
             double vth = (right_vel_speed - left_vel_speed) / wheel_base;
@@ -127,6 +148,12 @@ private:
 
             //Publish
             odom_publisher_->publish(odom);
+
+            RCLCPP_INFO(this->get_logger(), "Odom data Published");
+        }
+        else
+        {
+            RCLCPP_WARN(this->get_logger(), "Failed to read encoder data");
         }
     }
 
@@ -139,16 +166,11 @@ private:
 
 int main(int argc, char * argv[])
 {
-    /*----------YARP Initialize----------*/
-	yarp::os::Network yarp;
-
-    /*----------ROS2 Initialize----------*/
     rclcpp::init(argc, argv);   //Node initialize
 
-    auto node = rclcpp::Node::make_shared("OdomPublisher"); //Node create
-    
+    //auto node = rclcpp::Node::make_shared("OdomPublisher"); //Node create
+    auto node = std::make_shared<OdomPublisher>();
     rclcpp::spin(node);
-
     rclcpp::shutdown(); //Node shutdown
     
 	return 0;
