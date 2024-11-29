@@ -14,6 +14,7 @@
 #include <vector>
 #include <iostream>
 #include <tf2/LinearMath/Quaternion.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 using namespace std::chrono_literals;
 
@@ -28,8 +29,9 @@ public:
     : Node("odom_publisher"), x_(0.0), y_(0.0), th_(0.0)
     {
         //ROS2パブリシャーとサブスクリバーの作成
-        odom_publisher_ = this->create_pulisher<nav_msgs::msg::Odometry>("odom",10);
-        velocity_subscriber_ = this->creatae_subscription<geometry_msgs::msg::Twist>("/cmd_vel", 10, std::build(&OdomPublisher::velocity_callback, this, std::placeholders::_1));
+        odom_publisher_ = this->create_publisher<nav_msgs::msg::Odometry>("odom",10);
+        velocity_subscriber_ = this->create_subscription<geometry_msgs::msg::Twist>(
+            "/cmd_vel", 10, std::bind(&OdomPublisher::velocity_callback, this, std::placeholders::_1));
 
         timer_ = this->create_wall_timer(10ms, std::bind(&OdomPublisher::timer_callback, this));
 
@@ -81,7 +83,7 @@ private:
         {
             //エンコーダデータの取得
             std::vector<double> enc(4);
-            for(int i = 0; i < enc.size(); i++){
+            for(size_t i = 0; i < enc.size(); i++){
                 enc[i] = bt->get(i).asFloat64();
             }
 
@@ -132,7 +134,7 @@ private:
     rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr velocity_subscriber_;
     rclcpp::TimerBase::SharedPtr timer_;
     double x_, y_, th_;
-}
+};
 
 
 int main(int argc, char * argv[])
