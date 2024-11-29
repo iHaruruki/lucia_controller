@@ -45,7 +45,7 @@ def generate_launch_description():
         [
             pkg_path,
             "config",
-            "lucia_controllers.yaml",
+            "robot_controllers.yaml",
         ]
     )
 
@@ -82,12 +82,12 @@ def generate_launch_description():
                    "--controller-manager", "/controller_manager"],
     )
 
-    imu_broadcaster_spawner = Node(
-        package="controller_manager",
-        executable="spawner",
-        arguments=["imu_sensor_broadcaster",
-                   "--controller-manager", "/controller_manager"],
-    )
+    #imu_broadcaster_spawner = Node(
+    #    package="controller_manager",
+    #    executable="spawner",
+    #    arguments=["imu_sensor_broadcaster",
+    #               "--controller-manager", "/controller_manager"],
+    #)
 
     robot_controller_spawner = Node(
         package="controller_manager",
@@ -98,9 +98,9 @@ def generate_launch_description():
 
     laser_node = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([os.path.join(rplidar_path, "launch"),
-                                       "/rplidar_c1_launch.py"]),
+                                       "/urg_node2.launch.py"]),
         launch_arguments={
-            "frame_id": "laser_link"
+            "frame_id": "laser"
         }.items()
     )
 
@@ -123,7 +123,7 @@ def generate_launch_description():
         laser_node,
         robot_state_pub_node,
         joint_state_broadcaster_spawner,
-        imu_broadcaster_spawner,
+        #imu_broadcaster_spawner,
         delay_rviz_after_joint_state_broadcaster_spawner,
         delay_robot_controller_spawner_after_joint_state_broadcaster_spawner,
     ]
