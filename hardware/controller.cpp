@@ -51,6 +51,12 @@ public:
 private:
     void velocity_callback(const geometry_msgs::msg::Twist::SharedPtr msg)
     {
+        //速度指令の制限
+        if(msg->linear.x > 0.5) msg->linear.x = 0.5;
+        if(msg->linear.x < -0.5) msg->linear.x = -0.5;
+        if(msg->angular.z > 0.5) msg->angular.z = 0.5;
+        if(msg->angular.z < -0.5) msg->angular.z = -0.5;
+
         std::vector<double> cmd(4);
         cmd[0] = msg->linear.x;
         cmd[1] = 0.00;
