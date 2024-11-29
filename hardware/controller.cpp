@@ -1,3 +1,7 @@
+#include <chrono>
+#include <memory>
+#include <cmath>
+
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/string.hpp>
 #include <std_msgs/msg/float64_multi_array.hpp>
@@ -11,85 +15,133 @@
 #include <iostream>
 #include <tf2/LinearMath/Quaternion.h>
 
+using namespace std::chrono_literals;
+
 // YARP port
 yarp::os::BufferedPort<yarp::os::Bottle> p_cmd; //motor command
 yarp::os::BufferedPort<yarp::os::Bottle> p_enc; //encoder reading
 
-
-void velocity_callback(const geometry_msgs::msg::Twist::SharedPtr msg)
+class OdomPublisher : public rclcpp::Node
 {
-    std::vector<double> cmd(4);
-    cmd[0]=msg->linear.x;
-    cmd[1]=0.00;
-    cmd[2]=msg->angular.z;
-    cmd[3]=0.00;
+public:
+    OdomPublisher()
+    : Node("odom_publisher"), x_(0.0), y_(0.0), th_(0.0)
+    {
+        //ROS2パブリシャーとサブスクリバーの作成
+        odom_publisher_ = this->create_pulisher<nav_msgs::msg::Odometry>("odom",10);
+        velocity_subscriber_ = this->creatae_subscription<geometry_msgs::msg::Twist>("/cmd_vel", 10, std::build(&OdomPublisher::velocity_callback, this, std::placeholders::_1));
 
-    yarp::os::Bottle& bc = p_cmd.prepare();
-    bc.clear();
-    for(int i = 0; i < cmd.size(); i++){
-       bc.addFloat64(cmd[i]);
+        timer_ = this->create_wall_timer(10ms, std::bind(&OdomPublisher::timer_callback, this));
+
+        //YARPの初期化とポートの設定
+        p_cmd.open("/remoteController/command:o");  //motor command
+        p_enc.open("/remoteController/encoder:i");  //encoder reading
+
+        //ポートの接続
+        yarp::os::Network::connect("/remoteController/command:o","/vehicleDriver/remote:i");    //motor command
+        yarp::os::Network::connect("/vehicleDriver/encoder:o", "/remoteController/encoder:i");  //encoder reading
     }
-    p_cmd.write();
 
-    //RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Received velocity command: linear.x=%f, angular.z=%f", msg->linear.x, msg->angular.z);
-    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Send velocity command: linear.x=%f, angular.z=%f", cmd[0], cmd[2]);
+    ~OdomPublisher()
+    {
+        p_cmd.close();
+        p_enc.close();
+    }
+
+private:
+    void velocity_callback(const geometry_msgs::msg::Twist::SharedPtr msg)
+    {
+        std::vector<double> cmd(4);
+        cmd[0] = msg->linear.x;
+        cmd[1] = 0.00;
+        cmd[2] = msg->angular.z;
+        cmd[3] = 0.00;
+
+        yarp::os::Bottle& bc = p_cmd.prepare();
+        bc.clear();
+        for(const auto& c : cmd){
+            bc.addFloat64(c);
+        }
+        p_cmd.write();
+
+        RCLCPP_INFO(this->get_logger(), "Send velocity command: linear.x=%f, angular.z=%f", cmd[0], cmd[2]);
+    }
+
+    void timer_callback()
+    {
+        //エンコーダの読み取り
+        yarp::os::Bottle* bt = p_enc.read(false);
+        if(bt != nullptr)
+        {
+            //エンコーダデータの取得
+            std::vector<double> enc(4);
+            for(int i = 0; i < enc.size(); i++){
+                enc[i] = bt->get(i).asFloat64();
+            }
+
+            //左右の車輪の速度を取得
+            double left_vel_speed = enc[0];
+            double right_vel_speed = enc[1];
+            double wheel_base = 0.5; //車輪間距離
+
+            //オドメトリの計算
+            double dt = 0.05;   //タイマー周期と一致させること
+            double vx = (right_vel_speed + left_vel_speed) / 2.0;
+            double vy = 0.0;
+            double vth = (right_vel_speed - left_vel_speed) / wheel_base;
+
+            double delta_x = vx * std::cos(th_) * dt;
+            double delta_y = vx * std::sin(th_) * dt;
+            double delta_th = vth * dt;
+
+            x_ += delta_x;
+            y_ += delta_y;
+            th_ += delta_th;
+
+            //オドメトリメッセージの作成
+            auto odom = nav_msgs::msg::Odometry();
+            odom.header.stamp = this->get_clock()->now();
+            odom.header.frame_id = "odom";
+
+            //位置
+            odom.pose.pose.position.x = x_;
+            odom.pose.pose.position.y = y_;
+            odom.pose.pose.position.z = 0.0;
+            tf2::Quaternion q;
+            q.setRPY(0.0, 0.0, th_);
+            odom.pose.pose.orientation = tf2::toMsg(q);
+
+            //速度
+            odom.child_frame_id = "base_link";
+            odom.twist.twist.linear.x = vx;
+            odom.twist.twist.linear.y = vy;
+            odom.twist.twist.angular.z = vth;
+
+            //Publish
+            odom_publisher_->publish(odom);
+        }
+    }
+
+    rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_publisher_;
+    rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr velocity_subscriber_;
+    rclcpp::TimerBase::SharedPtr timer_;
+    double x_, y_, th_;
 }
+
 
 int main(int argc, char * argv[])
 {
     /*----------YARP Initialize----------*/
 	yarp::os::Network yarp;
 
-	// Open YARP port
-	p_cmd.open("/remoteController/command:o");  //motor command
-	p_enc.open("/remoteController/encoder:i");  //encoder reading
-
-    // Connect to the sender port
-    yarp::os::Network::connect("/remoteController/command:o","/vehicleDriver/remote:i");    //motor command
-    yarp::os::Network::connect("/vehicleDriver/encoder:o", "/remoteController/encoder:i");  //encoder reading
-
     /*----------ROS2 Initialize----------*/
     rclcpp::init(argc, argv);   //Node initialize
-    auto node = rclcpp::Node::make_shared("lucia_controller"); //Node create
-    //create publisher
+
+    auto node = rclcpp::Node::make_shared("OdomPublisher"); //Node create
     
+    rclcpp::spin(node);
+
+    rclcpp::shutdown(); //Node shutdown
     
-    //create subscriber
-    auto velocity_subscriber = node->create_subscription<geometry_msgs::msg::Twist>("/cmd_vel", 10, velocity_callback);
-
-
-    rclcpp::WallRate loop_rate(100); //loop rate 100Hz
-   	while(rclcpp::ok())
-    {
-        // Motor command
-        rclcpp::spin_some(node);
-        //velocity_callback;
-        // Read encoder
-        /*yarp::os::Bottle* bt = p_enc.read(false);
-        std::vector<double> enc(4);
-        if (bt != nullptr)
-        {
-            for(int i = 0; i < enc.size(); i++){
-                enc[i] = bt->get(i).asFloat64();
-            }
-        }*/
-        
-        /*std::cout << "enc " 
-            << enc[0] << " " 
-            << enc[1] << " " 
-            << enc[2] << " " 
-            << enc[3] << " " 
-            << "cmd " 
-            << cmd[0] << " " 
-            << cmd[1] << " " 
-            << cmd[2] << " " 
-            << cmd[3] << std::endl;*/
-
-        yarp::os::Time::delay(0.05);
-        loop_rate.sleep();  //coodinate with loop_rate
-    }	
-
-    p_cmd.close();
-    p_enc.close();
 	return 0;
 }
