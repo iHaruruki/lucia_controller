@@ -9,6 +9,7 @@
 #include <yarp/os/Bottle.h>
 #include <vector>
 #include <iostream>
+#include <tf2/LinearMath/Quaternion.h>
 
 // YARP port
 yarp::os::BufferedPort<yarp::os::Bottle> p_cmd; //motor command
