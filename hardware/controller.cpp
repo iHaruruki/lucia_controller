@@ -76,25 +76,30 @@ private:
         if(msg->angular.z > 0.3) msg->angular.z = 0.3;
         if(msg->angular.z < -0.3) msg->angular.z = -0.3;
 
-        std::vector<double> cmd(4);
+        /*std::vector<double> cmd(4);
         cmd[0] = msg->linear.x;
         cmd[1] = 0.00;
         cmd[2] = msg->angular.z;
-        cmd[3] = 0.00;
-
-        yarp::os::Bottle& bc = p_cmd.prepare();
-        bc.clear();
-        for(const auto& c : cmd){
-            bc.addFloat64(c);
-        }
-        p_cmd.write();
-
-        RCLCPP_INFO(this->get_logger(), "Send velocity command to YARP: linear.x=%f, angular.z=%f", cmd[0], cmd[2]);
+        cmd[3] = 0.00;*/
+        latest_cmd[0] = msg->linear.x;
+        latest_cmd[1] = 0.00;
+        latest_cmd[2] = msg->angular.z;
+        latest_cmd[3] = 0.00;
     }
 
     void timer_callback()
     {
         //RCLCPP_INFO(this->get_logger(), "Timer callback triggered");
+
+        //速度指令の送信
+        yarp::os::Bottle& bc = p_cmd.prepare();
+        bc.clear();
+        for(const auto& c : latest_cmd){
+            bc.addFloat64(c);
+        }
+        p_cmd.write();
+        
+        RCLCPP_INFO(this->get_logger(), "Send velocity command to YARP: linear.x=%f, angular.z=%f", latest_cmd[0], latest_cmd[2]);
 
         //エンコーダの読み取り
         yarp::os::Bottle* bt = p_enc.read(false);
@@ -104,13 +109,8 @@ private:
             std::vector<double> enc(4);
             for(int i = 0; i < enc.size(); i++){
                 enc[i] = bt->get(i).asFloat64();
-                RCLCPP_INFO(this->get_logger(), "Encoder data received");
+                //RCLCPP_INFO(this->get_logger(), "Encoder data received");
             }
-            std::cout << "enc "
-                << enc[0] << " "
-                << enc[1] << " "
-                << enc[2] << " "
-                << enc[3] << std::endl;
             RCLCPP_INFO(this->get_logger(), "Recived encoder data: left_vel_speed=%f, right_vel_speed=%f",enc[0],enc[1]);
 
             //左右の車輪の速度を取得
@@ -166,6 +166,7 @@ private:
     rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr velocity_subscriber_;
     rclcpp::TimerBase::SharedPtr timer_;
     double x_, y_, th_;
+    double latest_cmd[4];
 };
 
 
