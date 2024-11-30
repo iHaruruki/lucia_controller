@@ -1,6 +1,7 @@
 #include <chrono>
 #include <memory>
 #include <cmath>
+#include <mutex>
 
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/string.hpp>
@@ -16,6 +17,10 @@
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
+// 最大速度の定義
+#define MAX_LINEAR 0.15 //[m/s]
+#define MAX_ANGULAR 0.3 //[rad/s]
+
 using namespace std::chrono_literals;
 
 // YARP port
@@ -26,14 +31,20 @@ class OdomPublisher : public rclcpp::Node
 {
 public:
     OdomPublisher()
-    : Node("odom_publisher"), x_(0.0), y_(0.0), th_(0.0)
+    : Node("odom_publisher"), x_(0.0), y_(0.0), th_(0.0),
+      current_linear_x_(0.0), current_angular_z_(0.0),
+      target_linear_x_(0.0), target_angular_z_(0.0),
+      a_max_linear_((MAX_LINEAR) / 1.0),    // 最大加速度(m/s²)
+      a_max_angular_(MAX_ANGULAR / 1.0)     //最大角加速度(rad/s²)
     {
-        //YARP networkの接続確認（8秒経過しても接続できない場合はエラーを出力）
-        yarp::os::Network yarp;
-        if(!yarp.checkNetwork(8.0)){
+        RCLCPP_INFO(this->get_logger(), "OdomPublisher node is starting...");
+
+        //YARP networkの接続確認（5秒経過しても接続できない場合はエラーを出力）
+        /*yarp::os::Network yarp;
+        if(!yarp.checkNetwork(5.0)){
             RCLCPP_ERROR(this->get_logger(), "YARP network is not available");
             throw std::runtime_error("YARP network is not available");
-        }
+        }*/
 
         //ROS2 PublisherとSubscriberの作成
         odom_publisher_ = this->create_publisher<nav_msgs::msg::Odometry>("odom",10);
@@ -43,7 +54,7 @@ public:
         timer_ = this->create_wall_timer(50ms, std::bind(&OdomPublisher::timer_callback, this));
 
         //YARPポートの設定
-        p_cmd.open("/remoteController/command:o");  //motor command
+        /*p_cmd.open("/remoteController/command:o");  //motor command
         p_enc.open("/remoteController/encoder:i");  //encoder reading
 
         //ポートの接続-Lucia側のYARPポートと接続する
@@ -56,7 +67,7 @@ public:
         }
         if(!enc_connected){
             RCLCPP_ERROR(this->get_logger(), "Failed to connect to /vehicleDriver/encoder:o");
-        }
+        }*/
     }
 
     ~OdomPublisher()
@@ -71,30 +82,42 @@ private:
         //RCLCPP_INFO(this->get_logger(), "Receive velocity command: linear.x=%f, angular.z=%f", msg->linear.x, msg->angular.z);
 
         //速度指令の制限
-        if(msg->linear.x > 0.15) msg->linear.x = 0.15;
-        if(msg->linear.x < -0.15) msg->linear.x = -0.15;
-        if(msg->angular.z > 0.3) msg->angular.z = 0.3;
-        if(msg->angular.z < -0.3) msg->angular.z = -0.3;
+        double cmd_linear_x = std::clamp(msg->linear.x, -MAX_LINEAR,MAX_LINEAR);
+        double cmd_angular_z = std::clamp(msg->angular.z, -MAX_ANGULAR, MAX_ANGULAR);
 
-        cmd[0] = msg->linear.x;
-        cmd[1] = 0.00;
-        cmd[2] = msg->angular.z;
-        cmd[3] = 0.00;
+        {
+            std::lock_guard<std::mutex> lock(cmd_mutex_);
+            target_linear_x_ = cmd_linear_x;
+            target_angular_z_ = cmd_angular_z;
+        }
+
+        RCLCPP_INFO(this->get_logger(), "Update target velocity: linear.x=%f, angular.z=%f", target_linear_x_, target_angular_z_);
     }
 
     void timer_callback()
     {
         //RCLCPP_INFO(this->get_logger(), "Timer callback triggered");
 
+        // 現在の速度を目標速度に向けて更新
+        {
+            std::lock_guard<std::mutex> lock(cmd_mutex_);
+            current_linear_x_ = update_speed(current_linear_x_, target_linear_x_, a_max_linear_);
+            current_angular_z_ = update_speed(current_angular_z_, target_angular_z_, a_max_angular_);
+            latest_cmd_[0] = current_linear_x_;
+            latest_cmd_[1] = 0.00;
+            latest_cmd_[2] = current_angular_z_;
+            latest_cmd_[3] = 0.00;
+        }
+
         //速度指令の送信
         yarp::os::Bottle& bc = p_cmd.prepare();
         bc.clear();
-        for(const auto& c : cmd){
+        for(const auto& c : latest_cmd_){
             bc.addFloat64(c);
         }
         p_cmd.write();
         
-        RCLCPP_INFO(this->get_logger(), "Send velocity command to YARP: linear.x=%f, angular.z=%f", cmd[0], cmd[2]);
+        RCLCPP_INFO(this->get_logger(), "Send velocity command to YARP: linear.x=%f, angular.z=%f", latest_cmd_[0], latest_cmd_[2]);
 
         //エンコーダの読み取り
         yarp::os::Bottle* bt = p_enc.read(false);
@@ -102,7 +125,7 @@ private:
         {
             //エンコーダデータの取得
             std::vector<double> enc(4);
-            for(int i = 0; i < enc.size(); i++){
+            for(std::vector<double>::size_type i = 0; i < enc.size(); i++){
                 enc[i] = bt->get(i).asFloat64();
                 //RCLCPP_INFO(this->get_logger(), "Encoder data received");
             }
@@ -157,12 +180,40 @@ private:
         }
     }
 
+    double update_speed(double current, double target, double max_acc)
+    {
+        if(current < target)
+        {
+            current += max_acc * 0.05;  //dt = 0.05[s]
+            if(current > target)
+            current = target;
+        }
+        else if(current > target)
+        {
+            current -= max_acc * 0.05;
+            if(current < target)
+            {
+                current = target;
+            }
+        }
+        return current;
+    }
+
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_publisher_;
     rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr velocity_subscriber_;
     rclcpp::TimerBase::SharedPtr timer_;
     double x_, y_, th_;
-    double cmd[4];  //motor_comand
-    double t_total, v_max, a_max, j_max;    //全体の移動時間[s], 最大速度, 最大加速度, 最大躍度
+    double latest_cmd_[4] = {0.0, 0.0, 0.0, 0.0};  //motor_comand
+    
+    // 速度制御用変数
+    double current_linear_x_;
+    double current_angular_z_;
+    double target_linear_x_;
+    double target_angular_z_;
+    double a_max_linear_;   // 最大加速度 (m/s²)
+    double a_max_angular_;  // 最大角加速度 (rad/s²)
+
+    std::mutex cmd_mutex_;
 };
 
 
