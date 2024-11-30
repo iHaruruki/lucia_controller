@@ -71,10 +71,10 @@ private:
         RCLCPP_INFO(this->get_logger(), "Receive velocity command: linear.x=%f, angular.z=%f", msg->linear.x, msg->angular.z);
 
         //速度指令の制限
-        if(msg->linear.x > 0.5) msg->linear.x = 0.5;
-        if(msg->linear.x < -0.5) msg->linear.x = -0.5;
-        if(msg->angular.z > 0.5) msg->angular.z = 0.5;
-        if(msg->angular.z < -0.5) msg->angular.z = -0.5;
+        if(msg->linear.x > 0.15) msg->linear.x = 0.15;
+        if(msg->linear.x < -0.15) msg->linear.x = -0.15;
+        if(msg->angular.z > 0.3) msg->angular.z = 0.3;
+        if(msg->angular.z < -0.3) msg->angular.z = -0.3;
 
         std::vector<double> cmd(4);
         cmd[0] = msg->linear.x;
@@ -94,19 +94,24 @@ private:
 
     void timer_callback()
     {
-        RCLCPP_INFO(this->get_logger(), "Timer callback triggered");
+        //RCLCPP_INFO(this->get_logger(), "Timer callback triggered");
 
         //エンコーダの読み取り
         yarp::os::Bottle* bt = p_enc.read(false);
         if(bt != nullptr)
         {
-            RCLCPP_INFO(this->get_logger(), "Encoder data received");
-
             //エンコーダデータの取得
             std::vector<double> enc(4);
-            for(size_t i = 0; i < enc.size(); i++){
+            for(int i = 0; i < enc.size(); i++){
                 enc[i] = bt->get(i).asFloat64();
+                RCLCPP_INFO(this->get_logger(), "Encoder data received");
             }
+            std::cout << "enc "
+                << enc[0] << " "
+                << enc[1] << " "
+                << enc[2] << " "
+                << enc[3] << std::endl;
+            RCLCPP_INFO(this->get_logger(), "Recived encoder data: left_vel_speed=%f, right_vel_speed=%f",enc[0],enc[1]);
 
             //左右の車輪の速度を取得
             double left_vel_speed = enc[0];
