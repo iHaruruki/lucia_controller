@@ -1,1 +1,1 @@
-controller_manager:hardware_interface:joint_state_broadcaster:lucia_state_publisher:plaginlib:rclcpp:rclcpp_lifecycle:ros2controlcli:ros2launch:rviz2:tf2:xacro
+controller_manager:geometry_msgs:hardware_interface:joint_state_broadcaster:lucia_state_publisher:nav_msgs:plaginlib:rclcpp:rclcpp_lifecycle:ros2controlcli:ros2launch:rviz2:tf2:tf2_geometry_msgs:tf2_ros:xacro
