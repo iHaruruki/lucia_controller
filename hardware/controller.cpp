@@ -68,7 +68,7 @@ public:
 private:
     void velocity_callback(const geometry_msgs::msg::Twist::SharedPtr msg)
     {
-        RCLCPP_INFO(this->get_logger(), "Receive velocity command: linear.x=%f, angular.z=%f", msg->linear.x, msg->angular.z);
+        //RCLCPP_INFO(this->get_logger(), "Receive velocity command: linear.x=%f, angular.z=%f", msg->linear.x, msg->angular.z);
 
         //速度指令の制限
         if(msg->linear.x > 0.15) msg->linear.x = 0.15;
@@ -76,15 +76,10 @@ private:
         if(msg->angular.z > 0.3) msg->angular.z = 0.3;
         if(msg->angular.z < -0.3) msg->angular.z = -0.3;
 
-        /*std::vector<double> cmd(4);
         cmd[0] = msg->linear.x;
         cmd[1] = 0.00;
         cmd[2] = msg->angular.z;
-        cmd[3] = 0.00;*/
-        latest_cmd[0] = msg->linear.x;
-        latest_cmd[1] = 0.00;
-        latest_cmd[2] = msg->angular.z;
-        latest_cmd[3] = 0.00;
+        cmd[3] = 0.00;
     }
 
     void timer_callback()
@@ -94,12 +89,12 @@ private:
         //速度指令の送信
         yarp::os::Bottle& bc = p_cmd.prepare();
         bc.clear();
-        for(const auto& c : latest_cmd){
+        for(const auto& c : cmd){
             bc.addFloat64(c);
         }
         p_cmd.write();
         
-        RCLCPP_INFO(this->get_logger(), "Send velocity command to YARP: linear.x=%f, angular.z=%f", latest_cmd[0], latest_cmd[2]);
+        RCLCPP_INFO(this->get_logger(), "Send velocity command to YARP: linear.x=%f, angular.z=%f", cmd[0], cmd[2]);
 
         //エンコーダの読み取り
         yarp::os::Bottle* bt = p_enc.read(false);
@@ -166,7 +161,8 @@ private:
     rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr velocity_subscriber_;
     rclcpp::TimerBase::SharedPtr timer_;
     double x_, y_, th_;
-    double latest_cmd[4];
+    double cmd[4];  //motor_comand
+    double t_total, v_max, a_max, j_max;    //全体の移動時間[s], 最大速度, 最大加速度, 最大躍度
 };
 
 
