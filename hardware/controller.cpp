@@ -40,11 +40,11 @@ public:
         RCLCPP_INFO(this->get_logger(), "OdomPublisher node is starting...");
 
         //YARP networkの接続確認（5秒経過しても接続できない場合はエラーを出力）
-        /*yarp::os::Network yarp;
+        yarp::os::Network yarp;
         if(!yarp.checkNetwork(5.0)){
             RCLCPP_ERROR(this->get_logger(), "YARP network is not available");
             throw std::runtime_error("YARP network is not available");
-        }*/
+        }
 
         //ROS2 PublisherとSubscriberの作成
         odom_publisher_ = this->create_publisher<nav_msgs::msg::Odometry>("odom",10);
@@ -54,7 +54,7 @@ public:
         timer_ = this->create_wall_timer(50ms, std::bind(&OdomPublisher::timer_callback, this));
 
         //YARPポートの設定
-        /*p_cmd.open("/remoteController/command:o");  //motor command
+        p_cmd.open("/remoteController/command:o");  //motor command
         p_enc.open("/remoteController/encoder:i");  //encoder reading
 
         //ポートの接続-Lucia側のYARPポートと接続する
@@ -67,7 +67,7 @@ public:
         }
         if(!enc_connected){
             RCLCPP_ERROR(this->get_logger(), "Failed to connect to /vehicleDriver/encoder:o");
-        }*/
+        }
     }
 
     ~OdomPublisher()
