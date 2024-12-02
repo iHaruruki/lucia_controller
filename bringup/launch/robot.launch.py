@@ -50,9 +50,9 @@ def generate_launch_description():
     )
 
     control_node = Node(
-        package="controller_manager",
-        executable="ros2_control_node",
-        parameters=[robot_controllers],
+        package="lucia_controller",
+        executable="lucia_controller",
+        #parameters=[robot_controllers],
         remappings=[
             ("~/robot_description", "/robot_description"),
         ],

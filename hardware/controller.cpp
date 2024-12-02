@@ -133,7 +133,7 @@ private:
                 enc[i] = bt->get(i).asFloat64();
                 //RCLCPP_INFO(this->get_logger(), "Encoder data received");
             }
-            RCLCPP_INFO(this->get_logger(), "Recived encoder data: left_vel_speed=%f, right_vel_speed=%f",enc[0],enc[1]);
+            //RCLCPP_INFO(this->get_logger(), "Recived encoder data: left_vel_speed=%f, right_vel_speed=%f",enc[0],enc[1]);
 
             //左右の車輪の速度を取得
             double left_vel_speed = enc[0];
@@ -175,8 +175,7 @@ private:
 
             //Publish
             odom_publisher_->publish(odom);
-
-            RCLCPP_INFO(this->get_logger(), "Odom data Published");
+            RCLCPP_INFO(this->get_logger(), "Odom data Published: left_vel_speed=%f, right_vel_speed=%f",odom.twist.twist.linear.x, odom.twist.twist.angular.z);
 
             // TF変換のブロードキャススト
             geometry_msgs::msg::TransformStamped odom_trans;
@@ -190,6 +189,8 @@ private:
             odom_trans.transform.rotation = odom.pose.pose.orientation;
 
             tf_broadcaster_->sendTransform(odom_trans);
+
+            RCLCPP_INFO(this->get_logger(), "tf_broadcaster Published: translation.x=%f, odom_trans.transform.rotation=%f", x_, odom.pose.pose.orientation);
         }
         else
         {
