@@ -16,10 +16,11 @@
 #include <iostream>
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+#include <tf2_ros/transform_broadcaster.h>
 
 // 最大速度の定義
-#define MAX_LINEAR 0.15 //[m/s]
-#define MAX_ANGULAR 0.3 //[rad/s]
+#define MAX_LINEAR 0.2 //[m/s]
+#define MAX_ANGULAR 0.4 //[rad/s]
 
 using namespace std::chrono_literals;
 
@@ -52,6 +53,9 @@ public:
             "/cmd_vel", 10, std::bind(&OdomPublisher::velocity_callback, this, std::placeholders::_1));
 
         timer_ = this->create_wall_timer(50ms, std::bind(&OdomPublisher::timer_callback, this));
+
+        // TFブロードキャスターの初期化
+        tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(this);
 
         //YARPポートの設定
         p_cmd.open("/remoteController/command:o");  //motor command
@@ -173,6 +177,19 @@ private:
             odom_publisher_->publish(odom);
 
             RCLCPP_INFO(this->get_logger(), "Odom data Published");
+
+            // TF変換のブロードキャススト
+            geometry_msgs::msg::TransformStamped odom_trans;
+            odom_trans.header.stamp = this->get_clock()->now();
+            odom_trans.header.frame_id = "odom";
+            odom_trans.child_frame_id = "base_link";
+
+            odom_trans.transform.translation.x = x_;
+            odom_trans.transform.translation.y = y_;
+            odom_trans.transform.translation.z = 0.0;
+            odom_trans.transform.rotation = odom.pose.pose.orientation;
+
+            tf_broadcaster_->sendTransform(odom_trans);
         }
         else
         {
@@ -202,6 +219,7 @@ private:
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_publisher_;
     rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr velocity_subscriber_;
     rclcpp::TimerBase::SharedPtr timer_;
+    std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
     double x_, y_, th_;
     double latest_cmd_[4] = {0.0, 0.0, 0.0, 0.0};  //motor_comand
     
