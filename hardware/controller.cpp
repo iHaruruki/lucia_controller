@@ -41,11 +41,11 @@ public:
         RCLCPP_INFO(this->get_logger(), "OdomPublisher node is starting...");
 
         //YARP networkの接続確認（5秒経過しても接続できない場合はエラーを出力）
-        /*yarp::os::Network yarp;
+        yarp::os::Network yarp;
         if(!yarp.checkNetwork(5.0)){
             RCLCPP_ERROR(this->get_logger(), "YARP network is not available");
             throw std::runtime_error("YARP network is not available");
-        }*/
+        }
 
         //ROS2 PublisherとSubscriberの作成
         odom_publisher_ = this->create_publisher<nav_msgs::msg::Odometry>("odom",10);
@@ -58,7 +58,7 @@ public:
         tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(this);
 
         //YARPポートの設定
-        /*p_cmd.open("/remoteController/command:o");  //motor command
+        p_cmd.open("/remoteController/command:o");  //motor command
         p_enc.open("/remoteController/encoder:i");  //encoder reading
 
         //ポートの接続-Lucia側のYARPポートと接続する
@@ -71,7 +71,7 @@ public:
         }
         if(!enc_connected){
             RCLCPP_ERROR(this->get_logger(), "Failed to connect to /vehicleDriver/encoder:o");
-        }*/
+        }
     }
 
     ~OdomPublisher()
@@ -117,7 +117,7 @@ private:
 
         //エンコーダの読み取り
         yarp::os::Bottle* bt = p_enc.read(false);
-        if(true/*bt != nullptr*/)
+        if(bt != nullptr)
         {
             //エンコーダデータの取得
             std::vector<double> enc(4);
@@ -166,7 +166,7 @@ private:
 
             //Publish
             odom_publisher_->publish(odom);
-            RCLCPP_INFO(this->get_logger(), "Odom data Published: left_vel_speed=%f, right_vel_speed=%f",odom.twist.twist.linear.x, odom.twist.twist.angular.z);
+            //RCLCPP_INFO(this->get_logger(), "Odom data Published: left_vel_speed=%f, right_vel_speed=%f",odom.twist.twist.linear.x, odom.twist.twist.angular.z);
 
             // TF変換のブロードキャススト
             geometry_msgs::msg::TransformStamped odom_trans;
@@ -181,7 +181,12 @@ private:
 
             tf_broadcaster_->sendTransform(odom_trans);
 
-            RCLCPP_INFO(this->get_logger(), "tf_broadcaster Published: translation.x=%f, orientation x=%f, y=%f, z=%f, w=%f", x_, odom.pose.pose.orientation.x, odom.pose.pose.orientation.y, odom.pose.pose.orientation.z, odom.pose.pose.orientation.w);
+            RCLCPP_INFO(this->get_logger(), "tf_broadcaster Published: translation.x=%f, orientation x=%f, y=%f, z=%f, w=%f", 
+            x_,
+            odom.pose.pose.orientation.x,
+            odom.pose.pose.orientation.y,
+            odom.pose.pose.orientation.z,
+            odom.pose.pose.orientation.w);
         }
         else
         {

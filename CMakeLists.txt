@@ -5,7 +5,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-#find dependencies
+# find dependencies
 set(THIS_PACKAGE_INCLUDE_DEPENDS
   hardware_interface
   pluginlib
@@ -18,6 +18,8 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
   tf2_ros
   tf2_geometry_msgs
 )
+
+set(CMAKE_BUILD_TYPE Debug)
 
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
@@ -32,70 +34,72 @@ foreach(Dependency IN ITEMS ${THIS_PACKAGE_INCLUDE_DEPENDS})
   find_package(${Dependency} REQUIRED)
 endforeach()
 
-# COMPITE
-add_library(
-  lucia_controller
-  SHARED
+# ライブラリのビルド
+add_library(lucia_controller_lib SHARED
   hardware/controller.cpp
-  #hardware/hardwareHandler.cpp
 )
 
-target_compile_features(lucia_controller PUBLIC cxx_std_17)
-target_include_directories(lucia_controller PUBLIC
-$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/hardware/include>
-$<INSTALL_INTERFACE:include/lucia_controller>
+target_compile_features(lucia_controller_lib PUBLIC cxx_std_17)
+target_include_directories(lucia_controller_lib PUBLIC
+  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/hardware/include>
+  $<INSTALL_INTERFACE:include/lucia_controller>
 )
 
-#add_executable(lucia_controller hardware/controller.cpp)
 ament_target_dependencies(
-  lucia_controller PUBLIC
-  ${THIS_PACKAGE_INCLUDE_DEPENDS} 
+  lucia_controller_lib PUBLIC
+  ${THIS_PACKAGE_INCLUDE_DEPENDS}
 )
 
-target_link_libraries(lucia_controller PUBLIC
-  #serial
+target_link_libraries(lucia_controller_lib PUBLIC 
   YARP::YARP_os
   YARP::YARP_init
 )
 
-# Causes the visibility macros to use dllexport rather than dllimport,
-# which is appropriate when building the dll but not consuming it.
-target_compile_definitions(${PROJECT_NAME} PRIVATE "ROBOT_CONTROLLER_BUILDING_DLL")
+# 実行可能ファイルのビルド
+add_executable(lucia_controller_node
+  hardware/controller.cpp
+)
 
-# Export hardware plugins
-pluginlib_export_plugin_description_file(hardware_interface lucia_controller.xml)
+target_compile_features(lucia_controller_node PUBLIC cxx_std_17)
+target_include_directories(lucia_controller_node PUBLIC
+  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/hardware/include>
+  $<INSTALL_INTERFACE:include/lucia_controller>
+)
 
-#install(
-#  DIRECTORY hardware/include
-#  DESTINATION include/robot_controller
-#)
+ament_target_dependencies(
+  lucia_controller_node
+  ${THIS_PACKAGE_INCLUDE_DEPENDS}
+)
+
+target_link_libraries(lucia_controller_node
+  lucia_controller_lib
+  YARP::YARP_os
+  YARP::YARP_init
+)
+
+# インストール設定
 install(
   DIRECTORY description/ros2_control description/urdf
-  DESTINATION share/robot_controller
+  DESTINATION share/${PROJECT_NAME}
 )
 install(
   DIRECTORY bringup/launch bringup/config bringup/rviz bringup/map
-  DESTINATION share/robot_controller
+  DESTINATION share/${PROJECT_NAME}
 )
-install(TARGETS lucia_controller
-  EXPORT export_lucia_controller
+
+install(TARGETS lucia_controller_node lucia_controller_lib
+  EXPORT export_${PROJECT_NAME}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
-) 
+  RUNTIME DESTINATION lib/${PROJECT_NAME}
+)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
-  # the following line skips the linter which checks for copyrights
-  # comment the line when a copyright and license is added to all source files
-  set(ament_cmake_copyright_FOUND TRUE)
-  # the following line skips cpplint (only works in a git repo)
-  # comment the line when this package is in a git repo and when
-  # a copyright and license is added to all source files
   set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-ament_export_targets(export_lucia_controller HAS_LIBRARY_TARGET)
+ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
 ament_export_dependencies(${THIS_PACKAGE_INCLUDE_DEPENDS})
 ament_package()
