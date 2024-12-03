@@ -1,1 +1,1 @@
-prepend-non-duplicate;LD_LIBRARY_PATH;lib
+/home/peach/ros2_ws/src/lucia_controller/build/lucia_controller/ament_cmake_environment_hooks/library_path.dsv

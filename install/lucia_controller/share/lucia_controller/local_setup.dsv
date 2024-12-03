@@ -1,3 +1,1 @@
-source;share/lucia_controller/environment/ament_prefix_path.sh
-source;share/lucia_controller/environment/library_path.sh
-source;share/lucia_controller/environment/path.sh
+/home/peach/ros2_ws/src/lucia_controller/build/lucia_controller/ament_cmake_environment_hooks/local_setup.dsv

@@ -53,9 +53,9 @@ def generate_launch_description():
         package="lucia_controller",
         executable="lucia_controller",
         #parameters=[robot_controllers],
-        remappings=[
-            ("~/robot_description", "/robot_description"),
-        ],
+        #remappings=[
+        #    ("~/robot_description", "/robot_description"),
+        #],
         output="both",
     )
 

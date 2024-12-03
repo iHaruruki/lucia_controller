@@ -52,7 +52,7 @@ ament_target_dependencies(
   ${THIS_PACKAGE_INCLUDE_DEPENDS} 
 )
 
-target_link_libraries(lucia_controller PUBLIC 
+target_link_libraries(lucia_controller PUBLIC
   #serial
   YARP::YARP_os
   YARP::YARP_init
@@ -71,11 +71,11 @@ pluginlib_export_plugin_description_file(hardware_interface lucia_controller.xml
 #)
 install(
   DIRECTORY description/ros2_control description/urdf
-  DESTINATION share/lucia_controller
+  DESTINATION share/robot_controller
 )
 install(
   DIRECTORY bringup/launch bringup/config bringup/rviz bringup/map
-  DESTINATION share/lucia_controller
+  DESTINATION share/robot_controller
 )
 install(TARGETS lucia_controller
   EXPORT export_lucia_controller

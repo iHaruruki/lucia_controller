@@ -41,24 +41,24 @@ public:
         RCLCPP_INFO(this->get_logger(), "OdomPublisher node is starting...");
 
         //YARP networkの接続確認（5秒経過しても接続できない場合はエラーを出力）
-        yarp::os::Network yarp;
+        /*yarp::os::Network yarp;
         if(!yarp.checkNetwork(5.0)){
             RCLCPP_ERROR(this->get_logger(), "YARP network is not available");
             throw std::runtime_error("YARP network is not available");
-        }
+        }*/
 
         //ROS2 PublisherとSubscriberの作成
         odom_publisher_ = this->create_publisher<nav_msgs::msg::Odometry>("odom",10);
         velocity_subscriber_ = this->create_subscription<geometry_msgs::msg::Twist>(
             "/cmd_vel", 10, std::bind(&OdomPublisher::velocity_callback, this, std::placeholders::_1));
 
-        timer_ = this->create_wall_timer(50ms, std::bind(&OdomPublisher::timer_callback, this));
+        timer_ = this->create_wall_timer(30ms, std::bind(&OdomPublisher::timer_callback, this));
 
         // TFブロードキャスターの初期化
         tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(this);
 
         //YARPポートの設定
-        p_cmd.open("/remoteController/command:o");  //motor command
+        /*p_cmd.open("/remoteController/command:o");  //motor command
         p_enc.open("/remoteController/encoder:i");  //encoder reading
 
         //ポートの接続-Lucia側のYARPポートと接続する
@@ -71,7 +71,7 @@ public:
         }
         if(!enc_connected){
             RCLCPP_ERROR(this->get_logger(), "Failed to connect to /vehicleDriver/encoder:o");
-        }
+        }*/
     }
 
     ~OdomPublisher()
@@ -83,8 +83,6 @@ public:
 private:
     void velocity_callback(const geometry_msgs::msg::Twist::SharedPtr msg)
     {
-        //RCLCPP_INFO(this->get_logger(), "Receive velocity command: linear.x=%f, angular.z=%f", msg->linear.x, msg->angular.z);
-
         //速度指令の制限
         double cmd_linear_x = std::clamp(msg->linear.x, -MAX_LINEAR,MAX_LINEAR);
         double cmd_angular_z = std::clamp(msg->angular.z, -MAX_ANGULAR, MAX_ANGULAR);
@@ -94,14 +92,10 @@ private:
             target_linear_x_ = cmd_linear_x;
             target_angular_z_ = cmd_angular_z;
         }
-
-        RCLCPP_INFO(this->get_logger(), "Update target velocity: linear.x=%f, angular.z=%f", target_linear_x_, target_angular_z_);
     }
 
     void timer_callback()
     {
-        //RCLCPP_INFO(this->get_logger(), "Timer callback triggered");
-
         // 現在の速度を目標速度に向けて更新
         {
             std::lock_guard<std::mutex> lock(cmd_mutex_);
@@ -120,12 +114,10 @@ private:
             bc.addFloat64(c);
         }
         p_cmd.write();
-        
-        RCLCPP_INFO(this->get_logger(), "Send velocity command to YARP: linear.x=%f, angular.z=%f", latest_cmd_[0], latest_cmd_[2]);
 
         //エンコーダの読み取り
         yarp::os::Bottle* bt = p_enc.read(false);
-        if(bt != nullptr)
+        if(true/*bt != nullptr*/)
         {
             //エンコーダデータの取得
             std::vector<double> enc(4);
@@ -133,15 +125,14 @@ private:
                 enc[i] = bt->get(i).asFloat64();
                 //RCLCPP_INFO(this->get_logger(), "Encoder data received");
             }
-            //RCLCPP_INFO(this->get_logger(), "Recived encoder data: left_vel_speed=%f, right_vel_speed=%f",enc[0],enc[1]);
 
             //左右の車輪の速度を取得
-            double left_vel_speed = enc[0];
-            double right_vel_speed = enc[1];
+            double left_vel_speed = 1;//enc[0];
+            double right_vel_speed = 2;//enc[1];
             double wheel_base = 0.5; //車輪間距離
 
             //オドメトリの計算
-            double dt = 0.05;   //タイマー周期と一致させること　timer_ 
+            double dt = 0.03;   //タイマー周期と一致させること　timer_ 
             double vx = (right_vel_speed + left_vel_speed) / 2.0;
             double vy = 0.0;
             double vth = (right_vel_speed - left_vel_speed) / wheel_base;
@@ -190,7 +181,7 @@ private:
 
             tf_broadcaster_->sendTransform(odom_trans);
 
-            RCLCPP_INFO(this->get_logger(), "tf_broadcaster Published: translation.x=%f, odom_trans.transform.rotation=%f", x_, odom.pose.pose.orientation);
+            RCLCPP_INFO(this->get_logger(), "tf_broadcaster Published: translation.x=%f, orientation x=%f, y=%f, z=%f, w=%f", x_, odom.pose.pose.orientation.x, odom.pose.pose.orientation.y, odom.pose.pose.orientation.z, odom.pose.pose.orientation.w);
         }
         else
         {
@@ -202,7 +193,7 @@ private:
     {
         if(current < target)
         {
-            current += max_acc * 0.05;  //dt = 0.05[s]
+            current += max_acc * 0.03;  //dt = 0.05[s]
             if(current > target)
             current = target;
         }
