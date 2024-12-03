@@ -125,10 +125,11 @@ private:
                 enc[i] = bt->get(i).asFloat64();
                 //RCLCPP_INFO(this->get_logger(), "Encoder data received");
             }
+            RCLCPP_INFO(this->get_logger(), "encoder data : left_vel_speed=%f, right_vel_speed=%f", enc[0], enc[1]);
 
             //左右の車輪の速度を取得
-            double left_vel_speed = 1;//enc[0];
-            double right_vel_speed = 2;//enc[1];
+            double left_vel_speed = enc[0];
+            double right_vel_speed = enc[1];
             double wheel_base = 0.5; //車輪間距離
 
             //オドメトリの計算
