@@ -33,8 +33,8 @@ class OdomPublisher : public rclcpp::Node
 public:
     OdomPublisher()
     : Node("odom_publisher"), x_(0.0), y_(0.0), th_(0.0),
-      current_linear_x_(0.0), current_angular_z_(0.0),
-      target_linear_x_(0.0), target_angular_z_(0.0),
+      current_linear_x_(0.0), current_linear_y_(0), current_angular_z_(0),
+      target_linear_x_(0.0), target_linear_y_(0.0), target_angular_z_(0.0),
       a_max_linear_((MAX_LINEAR) / 1.0),    // 最大加速度(m/s²)
       a_max_angular_(MAX_ANGULAR / 1.0)     //最大角加速度(rad/s²)
     {
@@ -85,24 +85,36 @@ private:
     {
         //速度指令の制限
         double cmd_linear_x = std::clamp(msg->linear.x, -MAX_LINEAR,MAX_LINEAR);
+        double cmd_linear_y = std::clamp(msg->linear.y, -MAX_LINEAR,MAX_LINEAR);
         double cmd_angular_z = std::clamp(msg->angular.z, -MAX_ANGULAR, MAX_ANGULAR);
 
         {
             std::lock_guard<std::mutex> lock(cmd_mutex_);
             target_linear_x_ = cmd_linear_x;
+            target_linear_y_ = cmd_linear_y;
             target_angular_z_ = cmd_angular_z;
         }
     }
 
     void timer_callback()
     {
+        // 現在時刻の取得
+        rclcpp::Time current_time = this->now();
+
+        // 静的変数として前回の時刻を保持
+        static rclcpp::Time last_time = current_time;
+
+        // 時間の経過を計算
+        double dt = (current_time - last_time).seconds();
+        
         // 現在の速度を目標速度に向けて更新
         {
             std::lock_guard<std::mutex> lock(cmd_mutex_);
             current_linear_x_ = update_speed(current_linear_x_, target_linear_x_, a_max_linear_);
+            current_linear_y_ = update_speed(current_linear_y_, target_linear_y_, a_max_linear_);
             current_angular_z_ = update_speed(current_angular_z_, target_angular_z_, a_max_angular_);
             latest_cmd_[0] = current_linear_x_;
-            latest_cmd_[1] = 0.00;
+            latest_cmd_[1] = current_linear_y_;
             latest_cmd_[2] = current_angular_z_;
             latest_cmd_[3] = 0.00;
         }
@@ -130,37 +142,40 @@ private:
             // 速度を取得
             double vx = enc[0];
             double vy = enc[1];
-            double w  = enc[2];
-            double ta = enc[3];
-            double wheel_base = 0.5; //車輪間距離
+            double w  = enc[2]; //w[rad/s]
+            double ta = enc[3]; //ta[rad]
+            //double wheel_base = 0.5; //車輪間距離
 
+            // オドメトリの計算
+            x_ += (vx * cos(th_) - vy * sin(th_)) * dt;
+            y_ += (vx * sin(th_) + vy * cos(th_)) * dt;
+            th_ += w * dt;
 
-            //オドメトリメッセージの作成
+            // オドメトリメッセージの作成
             auto odom = nav_msgs::msg::Odometry();
-            odom.header.stamp = this->get_clock()->now();
+            odom.header.stamp = current_time;
             odom.header.frame_id = "odom";
 
-            //位置
+            // 位置情報
             odom.pose.pose.position.x = x_;
             odom.pose.pose.position.y = y_;
             odom.pose.pose.position.z = 0.0;
             tf2::Quaternion q;
-            q.setRPY(0.0, 0.0, th_);
+            q.setRPY(0, 0, th_);
             odom.pose.pose.orientation = tf2::toMsg(q);
 
-            //速度
+            // 速度情報
             odom.child_frame_id = "base_link";
             odom.twist.twist.linear.x = vx;
             odom.twist.twist.linear.y = vy;
-            odom.twist.twist.angular.z = vth;
+            odom.twist.twist.angular.z = w;
 
-            //Publish
+            // オドメトリの配信publishパブリッシュ
             odom_publisher_->publish(odom);
-            RCLCPP_INFO(this->get_logger(), "Odom data Published: left_vel_speed=%f, right_vel_speed=%f",odom.twist.twist.linear.x, odom.twist.twist.angular.z);
 
-            // TF変換のブロードキャススト
+            // TFのブロードキャスト
             geometry_msgs::msg::TransformStamped odom_trans;
-            odom_trans.header.stamp = this->get_clock()->now();
+            odom_trans.header.stamp = current_time;
             odom_trans.header.frame_id = "odom";
             odom_trans.child_frame_id = "base_link";
 
@@ -170,18 +185,14 @@ private:
             odom_trans.transform.rotation = odom.pose.pose.orientation;
 
             tf_broadcaster_->sendTransform(odom_trans);
-
-            /*RCLCPP_INFO(this->get_logger(), "tf_broadcaster Published: translation.x=%f, orientation x=%f, y=%f, z=%f, w=%f", 
-            x_,
-            odom.pose.pose.orientation.x,
-            odom.pose.pose.orientation.y,
-            odom.pose.pose.orientation.z,
-            odom.pose.pose.orientation.w);*/
+            RCLCPP_INFO(this->get_logger(), "Publishing odometry data");
         }
         else
         {
             RCLCPP_WARN(this->get_logger(), "Failed to read encoder data");
         }
+        // 前回の時刻を更新
+        last_time = current_time;
     }
 
     double update_speed(double current, double target, double max_acc)
@@ -211,9 +222,14 @@ private:
     double latest_cmd_[4] = {0.0, 0.0, 0.0, 0.0};  //motor_comand
     
     // 速度制御用変数
+    // 現在の速度
     double current_linear_x_;
+    double current_linear_y_;
     double current_angular_z_;
+
+    // 目標速度
     double target_linear_x_;
+    double target_linear_y_;
     double target_angular_z_;
     double a_max_linear_;   // 最大加速度 (m/s²)
     double a_max_angular_;  // 最大角加速度 (rad/s²)
