@@ -14,7 +14,7 @@ from launch import LaunchDescription
 
 
 def generate_launch_description():
-    pkg_path = get_package_share_directory("robot_controller")
+    pkg_path = get_package_share_directory("lucia_controller")
     nav2_bringup_path = get_package_share_directory("nav2_bringup")
 
     rviz_config_file = PathJoinSubstitution(
