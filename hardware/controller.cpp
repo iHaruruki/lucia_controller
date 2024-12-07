@@ -137,7 +137,6 @@ private:
                 enc[i] = bt->get(i).asFloat64();
                 //RCLCPP_INFO(this->get_logger(), "Encoder data received");
             }
-            RCLCPP_INFO(this->get_logger(), "encoder data : left_vel_speed=%f, right_vel_speed=%f", enc[0], enc[1]);
 
             // 速度を取得
             double vx = enc[0];
@@ -146,10 +145,14 @@ private:
             double ta = enc[3]; //ta[rad]
             //double wheel_base = 0.5; //車輪間距離
 
+            RCLCPP_INFO(this->get_logger(), "encoder data : vx=%f, vy=%f\n, w=%f[rad/s], ta=%f[rad]", vx, vy, w, ta);
+
             // オドメトリの計算
             x_ += (vx * cos(th_) - vy * sin(th_)) * dt;
             y_ += (vx * sin(th_) + vy * cos(th_)) * dt;
             th_ += w * dt;
+
+            RCLCPP_INFO(this->get_logger(), "x_=%f, y_=%f, th_=%f", x_, y_, th_);
 
             // オドメトリメッセージの作成
             auto odom = nav_msgs::msg::Odometry();
