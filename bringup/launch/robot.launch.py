@@ -100,7 +100,7 @@ def generate_launch_description():
         PythonLaunchDescriptionSource([os.path.join(rplidar_path, "launch"),
                                        "/urg_node2.launch.py"]),
         launch_arguments={
-            "frame_id": "laser"
+            "frame_id": "laser_link"
         }.items()
     )
 

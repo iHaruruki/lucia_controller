@@ -127,24 +127,13 @@ private:
             }
             RCLCPP_INFO(this->get_logger(), "encoder data : left_vel_speed=%f, right_vel_speed=%f", enc[0], enc[1]);
 
-            //左右の車輪の速度を取得
-            double left_vel_speed = enc[0];
-            double right_vel_speed = enc[1];
+            // 速度を取得
+            double vx = enc[0];
+            double vy = enc[1];
+            double w  = enc[2];
+            double ta = enc[3];
             double wheel_base = 0.5; //車輪間距離
 
-            //オドメトリの計算
-            double dt = 0.03;   //タイマー周期と一致させること　timer_ 
-            double vx = (right_vel_speed + left_vel_speed) / 2.0;
-            double vy = 0.0;
-            double vth = (right_vel_speed - left_vel_speed) / wheel_base;
-
-            double delta_x = vx * std::cos(th_) * dt;
-            double delta_y = vx * std::sin(th_) * dt;
-            double delta_th = vth * dt;
-
-            x_ += delta_x;
-            y_ += delta_y;
-            th_ += delta_th;
 
             //オドメトリメッセージの作成
             auto odom = nav_msgs::msg::Odometry();
@@ -167,7 +156,7 @@ private:
 
             //Publish
             odom_publisher_->publish(odom);
-            //RCLCPP_INFO(this->get_logger(), "Odom data Published: left_vel_speed=%f, right_vel_speed=%f",odom.twist.twist.linear.x, odom.twist.twist.angular.z);
+            RCLCPP_INFO(this->get_logger(), "Odom data Published: left_vel_speed=%f, right_vel_speed=%f",odom.twist.twist.linear.x, odom.twist.twist.angular.z);
 
             // TF変換のブロードキャススト
             geometry_msgs::msg::TransformStamped odom_trans;
@@ -182,12 +171,12 @@ private:
 
             tf_broadcaster_->sendTransform(odom_trans);
 
-            RCLCPP_INFO(this->get_logger(), "tf_broadcaster Published: translation.x=%f, orientation x=%f, y=%f, z=%f, w=%f", 
+            /*RCLCPP_INFO(this->get_logger(), "tf_broadcaster Published: translation.x=%f, orientation x=%f, y=%f, z=%f, w=%f", 
             x_,
             odom.pose.pose.orientation.x,
             odom.pose.pose.orientation.y,
             odom.pose.pose.orientation.z,
-            odom.pose.pose.orientation.w);
+            odom.pose.pose.orientation.w);*/
         }
         else
         {
