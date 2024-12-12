@@ -143,15 +143,12 @@ private:
             double vy = enc[1];
             double w  = enc[2]; //w[rad/s]
             double ta = enc[3]; //ta[rad]
-            //double wheel_base = 0.5; //車輪間距離
-
-            RCLCPP_INFO(this->get_logger(), "encoder data : vx=%f, vy=%f\n, w=%f[rad/s], ta=%f[rad]", vx, vy, w, ta);
+            //RCLCPP_INFO(this->get_logger(), "encoder data : vx=%f, vy=%f\n, w=%f[rad/s], ta=%f[rad]", vx, vy, w, ta);
 
             // オドメトリの計算
             x_ += (vx * cos(th_) - vy * sin(th_)) * dt;
             y_ += (vx * sin(th_) + vy * cos(th_)) * dt;
             th_ += w * dt;
-
             RCLCPP_INFO(this->get_logger(), "x_=%f, y_=%f, th_=%f", x_, y_, th_);
 
             // オドメトリメッセージの作成
@@ -160,23 +157,24 @@ private:
             odom.header.frame_id = "odom";
 
             // 位置情報
+            tf2::Quaternion q;
+            q.setRPY(0, 0, th_);
             odom.pose.pose.position.x = x_;
             odom.pose.pose.position.y = y_;
             odom.pose.pose.position.z = 0.0;
-            tf2::Quaternion q;
-            q.setRPY(0, 0, th_);
-            odom.pose.pose.orientation = tf2::toMsg(q);
+            odom.pose.pose.orientation.x = q.x();
+            odom.pose.pose.orientation.y = q.y();
+            odom.pose.pose.orientation.z = q.z();
+            odom.pose.pose.orientation.w = q.w();
 
             // 速度情報
             odom.child_frame_id = "base_link";
             odom.twist.twist.linear.x = vx;
             odom.twist.twist.linear.y = vy;
             odom.twist.twist.angular.z = w;
-
-            // オドメトリの配信publishパブリッシュ
             odom_publisher_->publish(odom);
 
-            // TFのブロードキャスト
+            // オドメトリのブロードキャスト
             geometry_msgs::msg::TransformStamped odom_trans;
             odom_trans.header.stamp = current_time;
             odom_trans.header.frame_id = "odom";
@@ -185,9 +183,12 @@ private:
             odom_trans.transform.translation.x = x_;
             odom_trans.transform.translation.y = y_;
             odom_trans.transform.translation.z = 0.0;
-            odom_trans.transform.rotation = odom.pose.pose.orientation;
-
+            odom_trans.transform.rotation.x = q.x();
+            odom_trans.transform.rotation.y = q.y();
+            odom_trans.transform.rotation.z = q.z();
+            odom_trans.transform.rotation.w = q.w();
             tf_broadcaster_->sendTransform(odom_trans);
+            
             RCLCPP_INFO(this->get_logger(), "Publishing odometry data");
         }
         else
@@ -208,7 +209,7 @@ private:
         }
         else if(current > target)
         {
-            current -= max_acc * 0.05;
+            current -= max_acc * 0.03;
             if(current < target)
             {
                 current = target;
