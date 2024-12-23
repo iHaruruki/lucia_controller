@@ -49,13 +49,11 @@ public:
 
         //ROS2 PublisherとSubscriberの作成
         odom_publisher_ = this->create_publisher<nav_msgs::msg::Odometry>("odom",10);
+        odom_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(this);
         velocity_subscriber_ = this->create_subscription<geometry_msgs::msg::Twist>(
             "/cmd_vel", 10, std::bind(&OdomPublisher::velocity_callback, this, std::placeholders::_1));
 
         timer_ = this->create_wall_timer(30ms, std::bind(&OdomPublisher::timer_callback, this));
-
-        // TFブロードキャスターの初期化
-        tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(this);
 
         //YARPポートの設定
         p_cmd.open("/remoteController/command:o");  //motor command
@@ -187,7 +185,7 @@ private:
             odom_trans.transform.rotation.y = q.y();
             odom_trans.transform.rotation.z = q.z();
             odom_trans.transform.rotation.w = q.w();
-            tf_broadcaster_->sendTransform(odom_trans);
+            odom_broadcaster_->sendTransform(odom_trans);
             
             RCLCPP_INFO(this->get_logger(), "Publishing odometry data");
         }
@@ -219,13 +217,12 @@ private:
     }
 
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_publisher_;
+    std::shared_ptr<tf2_ros::TransformBroadcaster> odom_broadcaster_;
     rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr velocity_subscriber_;
     rclcpp::TimerBase::SharedPtr timer_;
-    std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
     double x_, y_, th_;
     double latest_cmd_[4] = {0.0, 0.0, 0.0, 0.0};  //motor_comand
     
-    // 速度制御用変数
     // 現在の速度
     double current_linear_x_;
     double current_linear_y_;
