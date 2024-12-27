@@ -20,7 +20,7 @@ def generate_launch_description():
             description="Start RViz2 automatically with this launch file.",
         ),
         DeclareLaunchArgument(
-            "config_file",
+            # "config_file",
             default_value=PathJoinSubstitution(
                 [pkg_path, "rviz", "robot.rviz"]),
             description="RViz2 config file.",

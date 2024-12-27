@@ -104,7 +104,7 @@ private:
 
         // 時間の経過を計算
         double dt = (current_time - last_time).seconds();
-        
+
         // 現在の速度を目標速度に向けて更新
         {
             std::lock_guard<std::mutex> lock(cmd_mutex_);
@@ -155,21 +155,22 @@ private:
             odom.header.frame_id = "odom";
 
             // 位置情報
-            tf2::Quaternion q;
-            q.setRPY(0, 0, th_);
+            tf2::Quaternion odom_q;
+            odom_q.setRPY(0, 0, th_);
             odom.pose.pose.position.x = x_;
             odom.pose.pose.position.y = y_;
             odom.pose.pose.position.z = 0.0;
-            odom.pose.pose.orientation.x = q.x();
-            odom.pose.pose.orientation.y = q.y();
-            odom.pose.pose.orientation.z = q.z();
-            odom.pose.pose.orientation.w = q.w();
+            odom.pose.pose.orientation.x = odom_q.x();
+            odom.pose.pose.orientation.y = odom_q.y();
+            odom.pose.pose.orientation.z = odom_q.z();
+            odom.pose.pose.orientation.w = odom_q.w();
 
             // 速度情報
             odom.child_frame_id = "base_link";
             odom.twist.twist.linear.x = vx;
             odom.twist.twist.linear.y = vy;
             odom.twist.twist.angular.z = w;
+            odom.header.stamp = this->now();
             odom_publisher_->publish(odom);
 
             // オドメトリのブロードキャスト
@@ -181,12 +182,12 @@ private:
             odom_trans.transform.translation.x = x_;
             odom_trans.transform.translation.y = y_;
             odom_trans.transform.translation.z = 0.0;
-            odom_trans.transform.rotation.x = q.x();
-            odom_trans.transform.rotation.y = q.y();
-            odom_trans.transform.rotation.z = q.z();
-            odom_trans.transform.rotation.w = q.w();
+            odom_trans.transform.rotation.x = odom_q.x();
+            odom_trans.transform.rotation.y = odom_q.y();
+            odom_trans.transform.rotation.z = odom_q.z();
+            odom_trans.transform.rotation.w = odom_q.w();
             odom_broadcaster_->sendTransform(odom_trans);
-            
+
             RCLCPP_INFO(this->get_logger(), "Publishing odometry data");
         }
         else
@@ -222,7 +223,7 @@ private:
     rclcpp::TimerBase::SharedPtr timer_;
     double x_, y_, th_;
     double latest_cmd_[4] = {0.0, 0.0, 0.0, 0.0};  //motor_comand
-    
+
     // 現在の速度
     double current_linear_x_;
     double current_linear_y_;
@@ -247,6 +248,6 @@ int main(int argc, char * argv[])
     auto node = std::make_shared<OdomPublisher>();
     rclcpp::spin(node);
     rclcpp::shutdown(); //Node shutdown
-    
+
 	return 0;
 }
