@@ -194,8 +194,8 @@ private:
         }
         else
         {
-            failure_count++;
-            RCLCPP_WARN(this->get_logger(), "Failed to read encoder data count:", failure_count);
+            failure_count = failure_count + 1;
+            RCLCPP_WARN(this->get_logger(), "Failed to read encoder data count:%d", failure_count);
         }
         // 前回の時刻を更新
         last_time = current_time;

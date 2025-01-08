@@ -6,7 +6,7 @@
 
     <!--リンクの設定-->
     <!--BodyLink-->
-    <link name="body_link">
+    <link name="base_footprint">
         <visual>
         <geometry>
             <cylinder radius="0.5" length="1.0"/> <!--見た目を円柱に設定-->
@@ -33,7 +33,7 @@
     </link>
 
     <!--Lidar-->
-    <link name="lidar">
+    <link name="laser">
         <visual>
         <geometry>
             <cylinder radius="0.1" length="0.1"/>
@@ -44,7 +44,7 @@
     <!--Joint-->
     <joint name="body_joint" type="fixed">
         <parent link="base_link"/>
-        <child link="body_link"/>
+        <child link="base_footprint"/>
         <origin xyz="0 0 0.85" rpy="0 0 0"/>
     </joint>
 
@@ -67,7 +67,7 @@
     <joint name="lidar_joint" type="fixed">
         <origin xyz="0.0 0.0 0.95" rpy="0.0 0.0 0.0"/>
         <parent link="base_link"/>
-        <child link="lidar"/>
+        <child link="laser"/>
     </joint>
 
 </robot>
