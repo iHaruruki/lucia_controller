@@ -147,7 +147,7 @@ private:
             x += (vx * cos(th) - vy * sin(th)) * dt;
             y += (vx * sin(th) + vy * cos(th)) * dt;
             th += w * dt;
-            RCLCPP_INFO(this->get_logger(), "x_=%f, y_=%f, th_=%f", x, y, th);
+            //RCLCPP_INFO(this->get_logger(), "x_=%f, y_=%f, th_=%f", x, y, th);
 
             // オドメトリメッセージの作成
             auto odom = nav_msgs::msg::Odometry();
@@ -190,11 +190,12 @@ private:
             //odom_trans.transform.rotation.w = odom_q.w();
             odom_broadcaster_->sendTransform(odom_trans);
 
-            RCLCPP_INFO(this->get_logger(), "Publishing odometry data");
+            //RCLCPP_INFO(this->get_logger(), "Publishing odometry data");
         }
         else
         {
-            RCLCPP_WARN(this->get_logger(), "Failed to read encoder data");
+            failure_count++;
+            RCLCPP_WARN(this->get_logger(), "Failed to read encoder data count:", failure_count);
         }
         // 前回の時刻を更新
         last_time = current_time;
@@ -226,6 +227,7 @@ private:
     double x, y, th;
     double latest_cmd_[4] = {0.0, 0.0, 0.0, 0.0};  //motor_comand
     uint32_t odom_sequence_;
+    int failure_count;
 
     // 現在の速度
     double current_linear_x_;
