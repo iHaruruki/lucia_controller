@@ -32,7 +32,7 @@ class OdomPublisher : public rclcpp::Node
 {
 public:
     OdomPublisher()
-    : Node("odom_publisher"), x_(0.0), y_(0.0), th_(0.0), odom_sequence_(0),
+    : Node("odom_publisher"), x(0.0), y(0.0), th(0.0), odom_sequence_(0),
       current_linear_x_(0.0), current_linear_y_(0), current_angular_z_(0),
       target_linear_x_(0.0), target_linear_y_(0.0), target_angular_z_(0.0),
       a_max_linear_((MAX_LINEAR) / 1.0),    // 最大加速度(m/s²)
@@ -144,10 +144,10 @@ private:
             //RCLCPP_INFO(this->get_logger(), "encoder data : vx=%f, vy=%f\n, w=%f[rad/s], ta=%f[rad]", vx, vy, w, ta);
 
             // オドメトリの計算
-            x_ += (vx * cos(th_) - vy * sin(th_)) * dt;
-            y_ += (vx * sin(th_) + vy * cos(th_)) * dt;
-            th_ += w * dt;
-            RCLCPP_INFO(this->get_logger(), "x_=%f, y_=%f, th_=%f", x_, y_, th_);
+            x += (vx * cos(th) - vy * sin(th)) * dt;
+            y += (vx * sin(th) + vy * cos(th)) * dt;
+            th += w * dt;
+            RCLCPP_INFO(this->get_logger(), "x_=%f, y_=%f, th_=%f", x, y, th);
 
             // オドメトリメッセージの作成
             auto odom = nav_msgs::msg::Odometry();
@@ -158,9 +158,9 @@ private:
 
             // 位置情報
             tf2::Quaternion odom_q;
-            odom_q.setRPY(0, 0, th_);
-            odom.pose.pose.position.x = x_;
-            odom.pose.pose.position.y = y_;
+            odom_q.setRPY(0, 0, th);
+            odom.pose.pose.position.x = x;
+            odom.pose.pose.position.y = y;
             odom.pose.pose.position.z = 0.0;
             odom.pose.pose.orientation.x = odom_q.x();
             odom.pose.pose.orientation.y = odom_q.y();
@@ -180,8 +180,8 @@ private:
             odom_trans.header.frame_id = "odom";
             odom_trans.child_frame_id = "base_link";
 
-            odom_trans.transform.translation.x = x_;
-            odom_trans.transform.translation.y = y_;
+            odom_trans.transform.translation.x = x;
+            odom_trans.transform.translation.y = y;
             odom_trans.transform.translation.z = 0.0;
             odom_trans.transform.rotation = odom.pose.pose.orientation;
             //odom_trans.transform.rotation.x = odom_q.x();
@@ -223,7 +223,7 @@ private:
     std::shared_ptr<tf2_ros::TransformBroadcaster> odom_broadcaster_;
     rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr velocity_subscriber_;
     rclcpp::TimerBase::SharedPtr timer_;
-    double x_, y_, th_;
+    double x, y, th;
     double latest_cmd_[4] = {0.0, 0.0, 0.0, 0.0};  //motor_comand
     uint32_t odom_sequence_;
 
