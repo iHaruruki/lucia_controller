@@ -1,6 +1,7 @@
 # lucia_controller
 ### Node and Topic
 ## Dependency
+    sudo apt install ros-humble-hardware-interface
 ## Setup
     sudo apt update
 
@@ -17,6 +18,8 @@
     source install/setup.bash
 
 ## Usage
+    ros2 run lucia_controller lucia_controller_node
+
 ## License
 ## Authors
 ## References
