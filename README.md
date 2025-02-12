@@ -46,13 +46,14 @@ $ source install/setup.bash
 
 ## Usage
 1. Power on Lucia
-2. Power on [Lucia-04-Creen-01-Main]
-3. (Wi-Fi settings) Connect to lucia-g-router
+2. Power on [Lucia-04-Green-01-Main]
+3. (Wi-Fi settings) Connect to [lucia-g-router]
 4. Release the emergency stop button
 5. Switch Lucia's mode to [Remote Movement] (YRAPをリモート移動モードに切り替える)
 6. Launch ROS2 Node
-    $ ros2 run lucia_controller lucia_controller_node
-
+```
+$ ros2 run lucia_controller lucia_controller_node
+```
 ## License
 ## Authors
 
