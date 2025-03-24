@@ -56,7 +56,7 @@ public:
 
     // YARPポートをオープンし、接続（YARP側のポート名は実システムに合わせて変更）
     p_cmd.open("/remoteController/command:o");      // モータ指令
-    p_enc.open("/remoteController/encoder:i");        // エンコーダ読み取り
+    p_enc.open("/remoteController/encoder:i");       // エンコーダ読み取り
 
     bool cmd_connected = yarp::os::Network::connect("/remoteController/command:o", "/vehicleDriver/remote:i");
     bool enc_connected = yarp::os::Network::connect("/vehicleDriver/encoder:o", "/remoteController/encoder:i");
@@ -132,7 +132,6 @@ private:
       double vx = enc[0];
       double vy = enc[1];
       double w  = enc[2];
-      // enc[3]は使用しない（例：ta）
 
       // 単純な運動モデル（実システムに合わせて補正が必要）
       x_ += (vx * cos(th_) - vy * sin(th_)) * dt;
