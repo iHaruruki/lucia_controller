@@ -77,16 +77,6 @@ target_link_libraries(lucia_controller_node
   YARP::YARP_init
 )
 
-# インストール設定
-install(
-  DIRECTORY
-  DESTINATION share/${PROJECT_NAME}
-)
-install(
-  DIRECTORY
-  DESTINATION share/${PROJECT_NAME}
-)
-
 install(TARGETS lucia_controller_node lucia_controller_lib
   EXPORT export_${PROJECT_NAME}
   ARCHIVE DESTINATION lib
