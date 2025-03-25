@@ -38,7 +38,7 @@ public:
     a_max_angular_(MAX_ANGULAR / 1.0),
     failure_count_(0)
   {
-    RCLCPP_INFO(this->get_logger(), "ucia_controller_node is starting...");
+    RCLCPP_INFO(this->get_logger(), "Lucia_controller_node is starting...");
 
     // YARPネットワークの初期化（5秒以内に接続できるか確認）
     yarp::os::Network yarp;
