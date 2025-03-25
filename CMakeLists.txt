@@ -14,7 +14,7 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
   std_msgs
   geometry_msgs
   nav_msgs
-  tf2  
+  tf2
   tf2_ros
   tf2_geometry_msgs
 )
@@ -50,7 +50,7 @@ ament_target_dependencies(
   ${THIS_PACKAGE_INCLUDE_DEPENDS}
 )
 
-target_link_libraries(lucia_controller_lib PUBLIC 
+target_link_libraries(lucia_controller_lib PUBLIC
   YARP::YARP_os
   YARP::YARP_init
 )
@@ -79,11 +79,11 @@ target_link_libraries(lucia_controller_node
 
 # インストール設定
 install(
-  DIRECTORY description/ros2_control description/urdf
+  DIRECTORY
   DESTINATION share/${PROJECT_NAME}
 )
 install(
-  DIRECTORY bringup/launch bringup/config bringup/rviz bringup/map
+  DIRECTORY
   DESTINATION share/${PROJECT_NAME}
 )
 
