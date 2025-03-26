@@ -9,64 +9,63 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+################################################################################
 # Find ament packages and libraries for ament and system dependencies
+################################################################################
 find_package(ament_cmake REQUIRED)
-find_package(rclcpp REQUIRED)
-find_package(std_msgs REQUIRED)
-find_package(std_srvs REQUIRED)
-find_package(message_filters REQUIRED)
-find_package(YARP REQUIRED COMPONENTS os)
+find_package(dynamixel_sdk REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(message_filters REQUIRED)
 find_package(nav_msgs REQUIRED)
+find_package(rclcpp REQUIRED)
 find_package(rcutils REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(std_srvs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(turtlebot3_msgs REQUIRED)
-#foreach(Dependency IN ITEMS ${THIS_PACKAGE_INCLUDE_DEPENDS})
-#  find_package(${Dependency} REQUIRED)
-#endforeach()
 
+################################################################################
+# Build
+################################################################################
 include_directories(
   include
 )
 
-# ライブラリのビルド
-add_library(${PROJECT_NAME}_lib SHARED
+add_library(${PROJECT_NAME}_lib
   "src/controller.cpp"
 )
 
-# find dependencies
 set(DEPENDENCIES
-  #hardware_interface
-  #pluginlib
-  "rclcpp"
-  "rcutils"
-  "std_msgs"
+  "dynamixel_sdk"
   "geometry_msgs"
   "message_filters"
-  "sensor_msgs"
-  "std_srvs"
-  "turtlebot3_msgs"
   "nav_msgs"
+  "rclcpp"
+  "rcutils"
+  "sensor_msgs"
+  "std_msgs"
+  "std_srvs"
   "tf2"
   "tf2_ros"
   "tf2_geometry_msgs"
+  "turtlebot3_msgs"
 )
-
-#set(CMAKE_BUILD_TYPE Debug)
 
 target_link_libraries(${PROJECT_NAME}_lib)
 ament_target_dependencies(${PROJECT_NAME}_lib ${DEPENDENCIES})
 
 set(EXECUTABLE_NAME "lucia_controller_node")
 
-add_executable(${EXECUTABLE_NAME} "src/controller.cpp")
-target_link_libraries(${EXECUTABLE_NAME} ${DEPENDENCIES}_lib)
+add_executable(${EXECUTABLE_NAME} src/controller.cpp)
+target_link_libraries(${EXECUTABLE_NAME} ${PROJECT_NAME}_lib)
 ament_target_dependencies(${EXECUTABLE_NAME} ${DEPENDENCIES})
 
+################################################################################
 # Install
+################################################################################
 install(DIRECTORY param
   DESTINATION share/${PROJECT_NAME}
 )
@@ -75,6 +74,8 @@ install(TARGETS ${EXECUTABLE_NAME}
   DESTINATION lib/${PROJECT_NAME}
 )
 
+################################################################################
 # Macro for ament package
+################################################################################
 ament_export_include_directories(include)
 ament_package()
