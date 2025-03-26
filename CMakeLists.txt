@@ -5,39 +5,49 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-# find dependencies
-set(THIS_PACKAGE_INCLUDE_DEPENDS
-  hardware_interface
-  pluginlib
-  rclcpp
-  rclcpp_lifecycle
-  std_msgs
-  geometry_msgs
-  nav_msgs
-  tf2
-  tf2_ros
-  tf2_geometry_msgs
-)
-
-set(CMAKE_BUILD_TYPE Debug)
-
+# Find ament packages and libraries for ament and system dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(std_srvs REQUIRED)
+find_package(message_filters REQUIRED)
 find_package(YARP REQUIRED COMPONENTS os)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
+find_package(rcutils REQUIRED)
+find_package(sensor_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
-foreach(Dependency IN ITEMS ${THIS_PACKAGE_INCLUDE_DEPENDS})
-  find_package(${Dependency} REQUIRED)
-endforeach()
+find_package(turtlebot3_msgs REQUIRED)
+#foreach(Dependency IN ITEMS ${THIS_PACKAGE_INCLUDE_DEPENDS})
+#  find_package(${Dependency} REQUIRED)
+#endforeach()
+
+include_directories(
+  include
+)
 
 # ライブラリのビルド
-add_library(lucia_controller_lib SHARED
-  hardware/controller.cpp
+add_library(${PROJECT_NAME}_lib SHARED
+  "hardware/controller.cpp"
 )
+
+# find dependencies
+set(DEPENDENCIES
+  #hardware_interface
+  #pluginlib
+  "rclcpp"
+  "rclcpp_lifecycle"
+  "std_msgs"
+  "geometry_msgs"
+  "nav_msgs"
+  "tf2"
+  "tf2_ros"
+  "tf2_geometry_msgs"
+)
+
+set(CMAKE_BUILD_TYPE Debug)
 
 target_compile_features(lucia_controller_lib PUBLIC cxx_std_17)
 target_include_directories(lucia_controller_lib PUBLIC

@@ -1,1 +1,0 @@
-/home/peach/ros2_ws/src/lucia_controller/bringup/launch/robot.launch.py
