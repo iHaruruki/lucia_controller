@@ -1,5 +1,9 @@
-cmake_minimum_required(VERSION 3.16)
-project(lucia_controller LANGUAGES CXX)
+cmake_minimum_required(VERSION 3.5)
+project(lucia_controller)
+
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 17)
+endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
@@ -38,68 +42,39 @@ set(DEPENDENCIES
   #hardware_interface
   #pluginlib
   "rclcpp"
-  "rclcpp_lifecycle"
+  "rcutils"
   "std_msgs"
   "geometry_msgs"
+  "message_filters"
+  "sensor_msgs"
+  "std_srvs"
+  "turtlebot3_msgs"
   "nav_msgs"
   "tf2"
   "tf2_ros"
   "tf2_geometry_msgs"
 )
 
-set(CMAKE_BUILD_TYPE Debug)
+#set(CMAKE_BUILD_TYPE Debug)
 
-target_compile_features(lucia_controller_lib PUBLIC cxx_std_17)
-target_include_directories(lucia_controller_lib PUBLIC
-  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/include>
-  $<INSTALL_INTERFACE:include/lucia_controller>
+target_link_libraries(${PROJECT_NAME}_lib)
+ament_target_dependencies(${PROJECT_NAME}_lib ${DEPENDENCIES})
+
+set(EXECUTABLE_NAME "lucia_controller_node")
+
+add_executable(${EXECUTABLE_NAME} "src/controller.cpp")
+target_link_libraries(${EXECUTABLE_NAME} ${DEPENDENCIES}_lib)
+ament_target_dependencies(${EXECUTABLE_NAME} ${DEPENDENCIES})
+
+# Install
+install(DIRECTORY param
+  DESTINATION share/${PROJECT_NAME}
 )
 
-ament_target_dependencies(
-  lucia_controller_lib PUBLIC
-  ${THIS_PACKAGE_INCLUDE_DEPENDS}
+install(TARGETS ${EXECUTABLE_NAME}
+  DESTINATION lib/${PROJECT_NAME}
 )
 
-target_link_libraries(lucia_controller_lib PUBLIC
-  YARP::YARP_os
-  YARP::YARP_init
-)
-
-# 実行可能ファイルのビルド
-add_executable(lucia_controller_node
-  src/controller.cpp
-)
-
-target_compile_features(lucia_controller_node PUBLIC cxx_std_17)
-target_include_directories(lucia_controller_node PUBLIC
-  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/include>
-  $<INSTALL_INTERFACE:include/lucia_controller>
-)
-
-ament_target_dependencies(
-  lucia_controller_node
-  ${THIS_PACKAGE_INCLUDE_DEPENDS}
-)
-
-target_link_libraries(lucia_controller_node
-  lucia_controller_lib
-  YARP::YARP_os
-  YARP::YARP_init
-)
-
-install(TARGETS lucia_controller_node lucia_controller_lib
-  EXPORT export_${PROJECT_NAME}
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION lib/${PROJECT_NAME}
-)
-
-if(BUILD_TESTING)
-  find_package(ament_lint_auto REQUIRED)
-  set(ament_cmake_cpplint_FOUND TRUE)
-  ament_lint_auto_find_test_dependencies()
-endif()
-
-ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
-ament_export_dependencies(${THIS_PACKAGE_INCLUDE_DEPENDS})
+# Macro for ament package
+ament_export_include_directories(include)
 ament_package()
