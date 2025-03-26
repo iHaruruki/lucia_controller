@@ -30,7 +30,7 @@ include_directories(
 
 # ライブラリのビルド
 add_library(${PROJECT_NAME}_lib SHARED
-  "hardware/controller.cpp"
+  "src/controller.cpp"
 )
 
 # find dependencies
@@ -51,7 +51,7 @@ set(CMAKE_BUILD_TYPE Debug)
 
 target_compile_features(lucia_controller_lib PUBLIC cxx_std_17)
 target_include_directories(lucia_controller_lib PUBLIC
-  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/hardware/include>
+  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/include>
   $<INSTALL_INTERFACE:include/lucia_controller>
 )
 
@@ -67,12 +67,12 @@ target_link_libraries(lucia_controller_lib PUBLIC
 
 # 実行可能ファイルのビルド
 add_executable(lucia_controller_node
-  hardware/controller.cpp
+  src/controller.cpp
 )
 
 target_compile_features(lucia_controller_node PUBLIC cxx_std_17)
 target_include_directories(lucia_controller_node PUBLIC
-  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/hardware/include>
+  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/include>
   $<INSTALL_INTERFACE:include/lucia_controller>
 )
 
