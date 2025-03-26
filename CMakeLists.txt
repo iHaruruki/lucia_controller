@@ -60,7 +60,7 @@ ament_target_dependencies(${PROJECT_NAME}_lib ${DEPENDENCIES})
 
 set(EXECUTABLE_NAME "lucia_controller_node")
 
-add_executable(${EXECUTABLE_NAME} src/controller.cpp)
+add_executable(${EXECUTABLE_NAME} src/main.cpp)
 target_link_libraries(${EXECUTABLE_NAME}
   ${PROJECT_NAME}_lib
   YARP::YARP_os
