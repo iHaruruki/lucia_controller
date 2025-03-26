@@ -24,7 +24,7 @@
 #include "lucia_controller/joint_state.hpp"
 #include "lucia_controller/motor_power.hpp"
 #include "lucia_controller/odometry.hpp"
-#include "lucia_controller/sensors.hpp"
+#include "lucia_controller/sensor_state.hpp"
 
 namespace robotis
 {
