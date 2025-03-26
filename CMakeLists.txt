@@ -26,6 +26,7 @@ find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(turtlebot3_msgs REQUIRED)
+find_package(YARP REQUIRED)
 
 ################################################################################
 # Build
@@ -60,7 +61,11 @@ ament_target_dependencies(${PROJECT_NAME}_lib ${DEPENDENCIES})
 set(EXECUTABLE_NAME "lucia_controller_node")
 
 add_executable(${EXECUTABLE_NAME} src/controller.cpp)
-target_link_libraries(${EXECUTABLE_NAME} ${PROJECT_NAME}_lib)
+target_link_libraries(${EXECUTABLE_NAME}
+  ${PROJECT_NAME}_lib
+  YARP::YARP_os
+  YARP::YARP_init
+)
 ament_target_dependencies(${EXECUTABLE_NAME} ${DEPENDENCIES})
 
 ################################################################################
