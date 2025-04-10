@@ -142,7 +142,7 @@ private:
       auto odom = nav_msgs::msg::Odometry();
       odom.header.stamp = current_time;
       odom.header.frame_id = "odom";
-      odom.child_frame_id = "base_link";
+      odom.child_frame_id = "base_footprint";
 
       tf2::Quaternion odom_q;
       odom_q.setRPY(0, 0, th_);
@@ -160,7 +160,7 @@ private:
       geometry_msgs::msg::TransformStamped odom_trans;
       odom_trans.header.stamp = current_time;
       odom_trans.header.frame_id = "odom";
-      odom_trans.child_frame_id = "base_link";
+      odom_trans.child_frame_id = "base_footprint";
       odom_trans.transform.translation.x = x_;
       odom_trans.transform.translation.y = y_;
       odom_trans.transform.translation.z = 0.0;
