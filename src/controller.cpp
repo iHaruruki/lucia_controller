@@ -7,7 +7,7 @@
 #include "geometry_msgs/msg/twist.hpp"
 #include "nav_msgs/msg/odometry.hpp"
 #include "tf2/LinearMath/Quaternion.h"
-#include "tf2_geometry_msgs/tf2_geometry_msgs.h"
+#include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 
 using namespace std::chrono_literals;
 
@@ -18,33 +18,33 @@ public:
   : Node("lucia_controller"), x_(0.0), y_(0.0), theta_(0.0),
     vx_(0.0), vy_(0.0), omega_(0.0)
   {
-    // cmd_velサブスクライバーの作成（制御入力用、例としてログ出力）
+    // cmd_vel subscriber (for control input; here for logging)
     cmd_vel_sub_ = this->create_subscription<geometry_msgs::msg::Twist>(
       "cmd_vel", 10,
       std::bind(&LuciaController::cmdVelCallback, this, std::placeholders::_1));
 
-    // エンコーダからの速度情報を受け取るサブスクライバーの作成（geometry_msgs/msg/Twistを使用）
+    // Encoder data subscriber (reads vx, vy, and omega from encoder)
     encoder_sub_ = this->create_subscription<geometry_msgs::msg::Twist>(
       "encoder", 10,
       std::bind(&LuciaController::encoderCallback, this, std::placeholders::_1));
 
-    // /odomパブリッシャーの作成（出力はnav_msgs/msg/Odometry）
+    // /odom publisher (publishes nav_msgs/msg/Odometry)
     odom_pub_ = this->create_publisher<nav_msgs::msg::Odometry>("/odom", 10);
 
-    // オドメトリの更新用タイマー（100ms毎に更新）
+    // Timer to update odometry every 100ms
     timer_ = this->create_wall_timer(
       100ms, std::bind(&LuciaController::updateOdometry, this));
   }
 
 private:
-  // cmd_velのコールバック：制御入力として受信、ここでは単にログ出力
+  // Callback for cmd_vel data: logs received control commands.
   void cmdVelCallback(const geometry_msgs::msg::Twist::SharedPtr msg)
   {
     RCLCPP_INFO(this->get_logger(), "Received cmd_vel: linear=%.2f angular=%.2f",
                 msg->linear.x, msg->angular.z);
   }
 
-  // エンコーダからのデータのコールバック：vx, vy, omegaを更新
+  // Callback for encoder data: updates vx, vy, and omega.
   void encoderCallback(const geometry_msgs::msg::Twist::SharedPtr msg)
   {
     std::lock_guard<std::mutex> lock(vel_mutex_);
@@ -56,7 +56,7 @@ private:
                 vx_, vy_, omega_);
   }
 
-  // オドメトリの更新（エンコーダからの値を統合する）
+  // Timer callback to compute and publish odometry using encoder data.
   void updateOdometry()
   {
     double dt = 0.1; // 100ms
@@ -69,8 +69,7 @@ private:
       current_omega = omega_;
     }
 
-    // エンコーダ計測値(vx, vy)はロボットの局所座標系における速度
-    // これを地図座標系に変換して更新
+    // Convert local velocities (vx, vy) to global frame using the current orientation (theta_)
     double delta_x = (current_vx * std::cos(theta_) - current_vy * std::sin(theta_)) * dt;
     double delta_y = (current_vx * std::sin(theta_) + current_vy * std::cos(theta_)) * dt;
     double delta_theta = current_omega * dt;
@@ -79,7 +78,7 @@ private:
     y_ += delta_y;
     theta_ += delta_theta;
 
-    // オドメトリメッセージの作成
+    // Create and publish odometry message
     auto odom_msg = nav_msgs::msg::Odometry();
     odom_msg.header.stamp = this->now();
     odom_msg.header.frame_id = "odom";
@@ -89,12 +88,11 @@ private:
     odom_msg.pose.pose.position.y = y_;
     odom_msg.pose.pose.position.z = 0.0;
 
-    // 現在のyaw角からクォータニオンを生成
+    // Convert yaw (theta_) to quaternion representation
     tf2::Quaternion q;
     q.setRPY(0, 0, theta_);
     odom_msg.pose.pose.orientation = tf2::toMsg(q);
 
-    // オドメトリの速度情報にエンコーダからの速度を設定
     odom_msg.twist.twist.linear.x = current_vx;
     odom_msg.twist.twist.linear.y = current_vy;
     odom_msg.twist.twist.angular.z = current_omega;
@@ -102,15 +100,14 @@ private:
     odom_pub_->publish(odom_msg);
   }
 
-  // メンバ変数
+  // Member variables for subscriptions, publisher, and timer.
   rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_sub_;
   rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr encoder_sub_;
   rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
   rclcpp::TimerBase::SharedPtr timer_;
 
-  // ロボットのグローバル位置と姿勢
+  // Variables to store robot pose and encoder velocity
   double x_, y_, theta_;
-  // エンコーダからの速度情報（局所座標系）
   double vx_, vy_, omega_;
   std::mutex vel_mutex_;
 };
