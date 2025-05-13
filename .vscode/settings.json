@@ -32,5 +32,6 @@
         "string": "cpp",
         "vector": "cpp",
         "chrono": "cpp"
-    }
+    },
+    "ros.distro": "humble"
 }

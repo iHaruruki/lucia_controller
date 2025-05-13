@@ -156,7 +156,7 @@ private:
       odom.twist.twist.angular.z = w;
       odom_publisher_->publish(odom);
 
-      // TFブロードキャスト（odom→base_link）
+      // TFブロードキャスト
       geometry_msgs::msg::TransformStamped odom_trans;
       odom_trans.header.stamp = current_time;
       odom_trans.header.frame_id = "odom";
