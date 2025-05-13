@@ -1,4 +1,3 @@
-// robot_driver.cpp
 #include <chrono>
 #include <memory>
 #include <cmath>
@@ -32,11 +31,11 @@ public:
   OdomPublisher()
   : Node("odom_publisher"),
     x_(0.0), y_(0.0), th_(0.0),
+    // latest_cmd_はクラス定義で初期化済み
+    failure_count_(0),
     current_linear_x_(0.0), current_linear_y_(0.0), current_angular_z_(0.0),
     target_linear_x_(0.0), target_linear_y_(0.0), target_angular_z_(0.0),
-    a_max_linear_(MAX_LINEAR / 1.0),
-    a_max_angular_(MAX_ANGULAR / 1.0),
-    failure_count_(0)
+    a_max_linear_(MAX_LINEAR / 1.0), a_max_angular_(MAX_ANGULAR / 1.0)
   {
     RCLCPP_INFO(this->get_logger(), "Lucia_controller_node is starting...");
 
