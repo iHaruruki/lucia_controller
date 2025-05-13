@@ -45,14 +45,12 @@ set(DEPENDENCIES
   "message_filters"
   "nav_msgs"
   "rclcpp"
-  "rcutils"
   "sensor_msgs"
   "std_msgs"
   "std_srvs"
   "tf2"
   "tf2_ros"
   "tf2_geometry_msgs"
-  "turtlebot3_msgs"
 )
 
 target_link_libraries(${PROJECT_NAME}_lib)
@@ -60,7 +58,7 @@ ament_target_dependencies(${PROJECT_NAME}_lib ${DEPENDENCIES})
 
 set(EXECUTABLE_NAME "lucia_controller_node")
 
-add_executable(${EXECUTABLE_NAME} src/main.cpp)
+add_executable(${EXECUTABLE_NAME} src/controller.cpp)
 target_link_libraries(${EXECUTABLE_NAME}
   ${PROJECT_NAME}_lib
   YARP::YARP_os
