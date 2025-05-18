@@ -1,19 +1,25 @@
 # lucia_controller
 ### Node and Topic
-## Dependency
-    $ sudo apt install ros-humble-hardware-interface
-YRAP
+## Setup
+### YRAP
+Required Dependencies
+```shell
+sudo apt install build-essential git cmake cmake-curses-gui
 ```
-$ sudo apt install build-essential git cmake cmake-curses-gui
-# Install YCM from source codes
+Install YCM from source codes
+```shell
 $ git clone https://github.com/robotology/ycm/
 $ cd ycm && mkdir build && cd build
 $ cmake ..
 $ make
 $ sudo make install
-# Install other dependences
+```
+Install other dependences
+```shell
 $ sudo apt-get install -y build-essential git cmake cmake-curses-gui ycm-cmake-modules libeigen3-dev libace-dev libedit-dev libsqlite3-dev libtinyxml-dev qtbase5-dev qtdeclarative5-dev qtmultimedia5-dev qml-module-qtquick2 qml-module-qtquick-window2 qml-module-qtmultimedia qml-module-qtquick-dialogs qml-module-qtquick-controls qml-module-qt-labs-folderlistmodel qml-module-qt-labs-settings libqcustomplot-dev libgraphviz-dev libjpeg-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-libav
-# YARP Install
+```
+YARP Install
+```shell
 $ cd ~/opt
 $ git clone https://github.com/robotology/yarp.git
 $ cd yarp && mkdir build && cd build
@@ -21,18 +27,29 @@ $ cmake ..
 $ make -j8
 $ sudo make install
 $ sudo ldconfig
-# Check YARP functions correctly
+```
+Check YARP functions correctly
+```shell
 $ yarpserver
 $ CTRL-C
-# If "Ok. Ready!" is printed, it functions correctly
+```
+`If "Ok. Ready!" is printed, it functions correctly`
+#### YARP Network setting
+```shell
 $ yarp conf
-$ cd /.config/yaro/
+$ cd /.config/yarp/
 $ cp yarp.conf _lucia_g.conf
-$ gedit _lucia_g.conf
+$ nano _lucia_g.conf
+```
+Change the code of _lucia_g.conf
+```fiff_plaintext
+- 192.168.27.132 10000 yarp
++ 192.168.1.221 10000 yarp
+```
 # Change the IP address to match Lucia
 $ yarp namespace /lucia_g
 ```
-## Setup
+## ROS2 Packages
 ```
 $ sudo apt update
 $ sudo apt install ros-humble-hardware-interface
