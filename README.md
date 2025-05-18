@@ -46,7 +46,8 @@ Change the code of `_lucia_g.conf`
 - 192.168.27.132 10000 yarp
 + 192.168.1.221 10000 yarp
 ```
-# Change the IP address to match Lucia
+Change the namespace
+```shell
 $ yarp namespace /lucia_g
 ```
 ## ROS2 Packages
@@ -61,11 +62,11 @@ $ source install/setup.bash
 ```
 
 ## Usage
-1. Power on Lucia
+1. Power on Lucia and NUC21
 2. Power on [Lucia-04-Green-01-Main]
 3. (Wi-Fi settings) Connect to [lucia-g-router]
 4. Release the emergency stop button
-5. Switch Lucia's mode to [Remote Movement] (YRAPをリモート移動モードに切り替える)
+5. Switch Lucia's mode to [Remote Movement] (`remote`モードに切り替える)
 6. Launch ROS2 Node
 ```
 $ ros2 run lucia_controller lucia_controller_node
