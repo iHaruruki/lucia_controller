@@ -6,7 +6,6 @@ YRAP
 ```
 $ sudo apt install build-essential git cmake cmake-curses-gui
 # Install YCM from source codes
-$ cd
 $ git clone https://github.com/robotology/ycm/
 $ cd ycm && mkdir build && cd build
 $ cmake ..
