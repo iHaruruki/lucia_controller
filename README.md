@@ -20,7 +20,6 @@ sudo apt-get install -y build-essential git cmake cmake-curses-gui ycm-cmake-mod
 ```
 YARP Install
 ```shell
-$ cd ~/opt
 $ git clone https://github.com/robotology/yarp.git
 $ cd yarp && mkdir build && cd build
 $ cmake ..
