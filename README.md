@@ -36,7 +36,7 @@ $ CTRL-C
 #### YARP Network setting
 ```shell
 $ yarp conf
-$ cd /.config/yarp/
+$ cd ~/.config/yarp/
 $ cp yarp.conf _lucia_g.conf
 $ nano _lucia_g.conf
 ```
