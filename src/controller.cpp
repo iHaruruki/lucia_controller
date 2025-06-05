@@ -17,7 +17,7 @@
 #include <yarp/os/all.h>
 
 // 最大速度の定義
-#define MAX_LINEAR 0.2   // [m/s]
+#define MAX_LINEAR 0.3   // [m/s]
 #define MAX_ANGULAR 0.4  // [rad/s]
 
 using namespace std::chrono_literals;
