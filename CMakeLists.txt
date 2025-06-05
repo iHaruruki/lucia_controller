@@ -66,6 +66,10 @@ install(TARGETS ${EXECUTABLE_NAME}
   DESTINATION lib/${PROJECT_NAME}
 )
 
+install(DIRECTORY launch
+  DESTINATION share/${PROJECT_NAME}
+)
+
 ################################################################################
 # Macro for ament package
 ################################################################################
