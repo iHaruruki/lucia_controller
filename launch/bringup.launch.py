@@ -32,5 +32,4 @@ def generate_launch_description():
             output='screen',
             parameters=[{'robot_description': robot_desc}]
         )
-
-    ])
+])
