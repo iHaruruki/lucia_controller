@@ -17,7 +17,7 @@ def generate_launch_description():
     description_path = os.path.join(lucia_description_pkg, 'launch', 'robot.launch.py')
     controller_path = os.path.join(lucia_controller_pkg, 'launch', 'controller.launch.py')
     urg_node2_path = os.path.join(urg_node2_pkg, 'launch', 'urg_node2_2lidar.launch.py')
-    dual_laser_merger_path = os.path.join(dual_laser_merger_pkg, 'launch', 'demo_laser_merger.launch.py')
+    dual_laser_merger_path = os.path.join(dual_laser_merger_pkg, 'launch', 'urg_node2_merger.launch.py')
 
     # IncludeLaunchDescription オブジェクトを作成
     include_description = IncludeLaunchDescription(
