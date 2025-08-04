@@ -81,9 +81,9 @@ private:
 
     {
       std::lock_guard<std::mutex> lock(cmd_mutex_);
-      current_linear_x_ = updateSpeed(current_linear_x_, target_linear_x_, MAX_LINEAR_X / 1.0);
-      current_linear_y_ = updateSpeed(current_linear_y_, target_linear_y_, MAX_LINEAR_Y / 1.0);
-      current_angular_z_ = updateSpeed(current_angular_z_, target_angular_z_, MAX_ANGULAR_Z / 1.0);
+      current_linear_x_ = updateSpeed(current_linear_x_, target_linear_x_, MAX_LINEAR_X / 2.0);
+      current_linear_y_ = updateSpeed(current_linear_y_, target_linear_y_, MAX_LINEAR_Y / 2.0);
+      current_angular_z_ = updateSpeed(current_angular_z_, target_angular_z_, MAX_ANGULAR_Z / 2.0);
 
       latest_cmd_[0] = current_linear_x_;
       latest_cmd_[1] = current_linear_y_;
