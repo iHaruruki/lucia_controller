@@ -179,7 +179,7 @@ private:
   // 急発進・急停止を避けるため、比例制御
   double update_speed(double current, double target, double max_acc)
   {
-    double step = max_acc * 0.03; // dt=30msとして
+    double step = max_acc * 0.02; // dt=20msとして
     if(current < target)
     {
       current += step;
