@@ -33,7 +33,7 @@ public:
     x_(0.0), y_(0.0), th_(0.0),
     current_linear_x_(0.0), current_linear_y_(0.0), current_angular_z_(0.0),
     target_linear_x_(0.0), target_linear_y_(0.0), target_angular_z_(0.0),
-    failure_count_(0)
+    failure_count_(0), encoder_error_count_(0)
   {
     RCLCPP_INFO(this->get_logger(), "RobotDriver node started.");
 
@@ -103,9 +103,33 @@ private:
     yarp::os::Bottle* enc_bottle = p_enc.read(false);
     if(enc_bottle != nullptr)
     {
+      // --- エラーチェック: データ長の確認 ---
+      if(enc_bottle->size() < 3) {
+        encoder_error_count_++;
+        RCLCPP_ERROR(this->get_logger(), "Encoder data too short (size=%ld), error count: %d",
+                     enc_bottle->size(), encoder_error_count_);
+        last_time = now;
+        return;
+      }
+
+      // --- エラーチェック: NaN/Inf含み ---
       std::vector<double> enc(4, 0.0);
-      for(size_t i=0; i<enc.size(); ++i)
-        enc[i] = enc_bottle->get(i).asFloat64();
+      bool invalid_value = false;
+      for(size_t i=0; i<enc.size(); ++i) {
+        double val = enc_bottle->get(i).asFloat64();
+        if(std::isnan(val) || std::isinf(val)) {
+          invalid_value = true;
+          encoder_error_count_++;
+          RCLCPP_ERROR(this->get_logger(),
+                       "Encoder value invalid: index=%ld, value=%f, error count: %d",
+                       i, val, encoder_error_count_);
+        }
+        enc[i] = val;
+      }
+      if(invalid_value) {
+        last_time = now;
+        return;
+      }
 
       double vx = enc[0];
       double vy = enc[1];
@@ -170,6 +194,7 @@ private:
   double x_, y_, th_;
   double latest_cmd_[4] = {0.0, 0.0, 0.0, 0.0};
   int failure_count_;
+  int encoder_error_count_;
 
   double current_linear_x_, current_linear_y_, current_angular_z_;
   double target_linear_x_, target_linear_y_, target_angular_z_;
