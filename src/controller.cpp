@@ -17,7 +17,7 @@
 // 最大速度の定義（TurtleBot3参考値）
 constexpr double MAX_LINEAR_X = 0.5;   // [m/s]
 constexpr double MAX_LINEAR_Y = 0.5;   // [m/s]
-constexpr double MAX_ANGULAR_Z = 0.5;  // [rad/s]
+constexpr double MAX_ANGULAR_Z = 0.7;  // [rad/s]
 
 using namespace std::chrono_literals;
 
