@@ -1,22 +1,29 @@
-from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import ExecuteProcess
-from launch_ros.actions import ComposableNodeContainer, Node
-from launch_ros.descriptions import ComposableNode
+from ament_index_python.packages import get_package_share_directory
+from ament_index_python.packages import get_package_prefix
+from yaml import Node
+import os
 
 
 def generate_launch_description():
+    pkg = get_package_share_directory('lucia_controller')
+    smoother_yaml = os.path.join(pkg, 'config', 'velocity_smoother.yaml')
 
-    ld = LaunchDescription()
+    # lucia_controller = Node(
+    #     package='lucia_controller',
+    #     executable='lucia_controller',
+    #     name='lucia_controller',
+    #     output='screen',
+    # )
 
-    lucia_controller_node = ComposableNodeContainer(
-        name='lucia_controller',
-        namespace='',
-        package='lucia_controller',
-        executable='lucia_controller_node',
+    velocity_smoother = Node(
+        package='nav2_velocity_smoother',
+        executable='velocity_smoother',
+        name='velocity_smoother',
         output='screen',
+        parameters=[smoother_yaml]
     )
 
-    ld.add_action(lucia_controller_node)
-
-    return ld
+    return LaunchDescription([
+        velocity_smoother
+    ])

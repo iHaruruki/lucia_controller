@@ -1,0 +1,42 @@
+velocity_smoother:
+  ros__parameters:
+    # 内部補間周波数
+    smoothing_frequency: 30.0
+
+    # OPEN_LOOP: 入力コマンド基準で平滑化
+    # 安定したオドメトリ使えるようになったら ODOMETRY に変更も可
+    feedback: "OPEN_LOOP"
+    odom_topic: "/odom"
+
+    # 速度制限（ハード安全と合わせる）
+    max_velocity:
+      linear_x: 0.30
+      linear_y: 0.30
+      angular_z: 0.40
+    min_velocity:
+      linear_x: -0.30
+      linear_y: -0.30
+      angular_z: -0.40
+
+    # 加速度制限（実機計測後調整）
+    max_accel:
+      linear_x: 0.55
+      linear_y: 0.55
+      angular_z: 0.75
+    max_decel:
+      linear_x: -0.70
+      linear_y: -0.70
+      angular_z: -0.90
+
+    # ジャーク制限（丸くしたい場合のみ。応答遅ければ削除/上げる）
+    max_jerk:
+      linear_x: 2.0
+      linear_y: 2.0
+      angular_z: 3.0
+
+    # 生コマンド途絶監視
+    velocity_timeout: 0.4
+
+    # トピック設定
+    raw_cmd_vel_topic: "/cmd_vel_raw"
+    smoothed_cmd_vel_topic: "/cmd_vel"
