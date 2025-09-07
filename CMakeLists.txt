@@ -48,7 +48,7 @@ set(DEPENDENCIES
 target_link_libraries(${PROJECT_NAME}_lib)
 ament_target_dependencies(${PROJECT_NAME}_lib ${DEPENDENCIES})
 
-set(EXECUTABLE_NAME "lucia_controller_node")
+set(EXECUTABLE_NAME "lucia_node")
 
 add_executable(${EXECUTABLE_NAME} src/controller.cpp)
 target_link_libraries(${EXECUTABLE_NAME}
