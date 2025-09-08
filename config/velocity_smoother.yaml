@@ -1,13 +1,9 @@
 velocity_smoother:
   ros__parameters:
-    # 周波数: driver が 50Hz なら合わせるかやや上
     smoothing_frequency: 50.0
-
-    # 初期は OPEN_LOOP。十分安定したら "ODOMETRY"
     feedback: "OPEN_LOOP"
     odom_topic: "/odom"
 
-    # 速度上限 (driver 側は safety clamp として ±0.33 など少し大きめに)
     max_velocity:
       linear_x: 0.30
       linear_y: 0.30
@@ -17,27 +13,15 @@ velocity_smoother:
       linear_y: -0.30
       angular_z: -0.40
 
-    # 加速度 (実測後に再調整)
-    # 例: step で 0.3m/s 到達に 0.55s → 0.54 m/s^2 なら 0.5 程度にセット
     max_accel:
       linear_x: 0.50
       linear_y: 0.50
       angular_z: 0.70
-
-    # 減速度: 正/負どちらの記法か仕様確認 (必要なら正値で指定し "max_decel")
-    # 瞬停で姿勢揺れが大きいなら 0.65 → 0.55 へ落とす等
     max_decel:
       linear_x: -0.60
       linear_y: -0.60
       angular_z: -0.80
 
-    # ジャーク。応答性重視テスト時はコメントアウト推奨
-    max_jerk:
-      linear_x: 4.0
-      linear_y: 4.0
-      angular_z: 6.0
-
     velocity_timeout: 0.4
-
     raw_cmd_vel_topic: "/cmd_vel_raw"
     smoothed_cmd_vel_topic: "/cmd_vel"
