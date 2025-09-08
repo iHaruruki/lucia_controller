@@ -29,6 +29,7 @@ set(DEPENDENCIES
   tf2
   tf2_ros
   tf2_geometry_msgs
+  robot_localization
 )
 
 include_directories(
@@ -48,7 +49,7 @@ install(TARGETS
   DESTINATION lib/${PROJECT_NAME}
 )
 
-install(DIRECTORY launch
+install(DIRECTORY launch config
   DESTINATION share/${PROJECT_NAME}
 )
 
