@@ -14,7 +14,7 @@
 // 最大速度制限
 constexpr double MAX_LINEAR_X  = 0.4;
 constexpr double MAX_LINEAR_Y  = 0.4;
-constexpr double MAX_ANGULAR_Z = 0.4;
+constexpr double MAX_ANGULAR_Z = 0.8;
 
 // ループ周期 (秒)
 constexpr double LOOP_PERIOD = 0.05;
