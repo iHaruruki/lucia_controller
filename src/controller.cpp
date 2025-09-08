@@ -9,17 +9,15 @@
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <tf2_ros/transform_broadcaster.h>
-
-// YARP
 #include <yarp/os/all.h>
 
 // 最大速度制限
-constexpr double MAX_LINEAR_X  = 0.3;
-constexpr double MAX_LINEAR_Y  = 0.3;
+constexpr double MAX_LINEAR_X  = 0.4;
+constexpr double MAX_LINEAR_Y  = 0.4;
 constexpr double MAX_ANGULAR_Z = 0.4;
 
-// タイマ周期 (秒)
-constexpr double LOOP_PERIOD = 0.05; // 50ms
+// ループ周期 (秒)
+constexpr double LOOP_PERIOD = 0.05;
 
 // YARPポート（シンプルさ優先でグローバル）
 yarp::os::BufferedPort<yarp::os::Bottle> g_cmd_port;
@@ -33,14 +31,20 @@ public:
     x_(0.0), y_(0.0), yaw_(0.0),
     cur_vx_(0.0), cur_vy_(0.0), cur_vth_(0.0),
     tgt_vx_(0.0), tgt_vy_(0.0), tgt_vth_(0.0),
+    filt_tgt_vx_(0.0), filt_tgt_vy_(0.0), filt_tgt_vth_(0.0),
     failure_count_(0), encoder_error_count_(0)
   {
-    RCLCPP_INFO(get_logger(), "RobotDriver minimal started.");
+    RCLCPP_INFO(get_logger(), "RobotDriver minimal with smoothing started.");
 
-    // オプション: シンプルな速度ランプを使うか
-    declare_parameter<bool>("use_ramp", false);
-    declare_parameter<double>("ramp_time_linear", 1.0);   // 目標速度までにかける秒 (簡易)
-    declare_parameter<double>("ramp_time_angular", 1.0);
+    // パラメータ宣言
+    // smoothing_tau_* : 大きいほど滑らか(遅い)、小さいほど速い
+    declare_parameter<bool>("use_smoothing", true);
+    declare_parameter<double>("smoothing_tau_linear", 0.3);
+    declare_parameter<double>("smoothing_tau_angular", 0.2);
+
+    declare_parameter<bool>("use_ramp", true);
+    declare_parameter<double>("ramp_time_linear", 0.6);   // 目標到達にかける時間(簡易)
+    declare_parameter<double>("ramp_time_angular", 0.6);
 
     // YARPネットワーク確認
     yarp::os::Network yarp;
@@ -56,7 +60,6 @@ public:
       "/cmd_vel", 10,
       std::bind(&RobotDriver::onCmdVel, this, std::placeholders::_1));
 
-    // タイマ
     timer_ = create_wall_timer(
       std::chrono::duration<double>(LOOP_PERIOD),
       std::bind(&RobotDriver::onLoop, this));
@@ -102,36 +105,51 @@ private:
     readEncoderAndUpdate(dt, now_t);
   }
 
-  /* ===== コマンド更新（任意ランプ） ===== */
+  /* ===== コマンド更新 (平滑化 + 任意ランプ) ===== */
   void updateCommand(double dt)
   {
     std::lock_guard<std::mutex> lk(cmd_mutex_);
-    bool use_ramp = get_parameter("use_ramp").as_bool();
-    if (!use_ramp) {
-      cur_vx_  = tgt_vx_;
-      cur_vy_  = tgt_vy_;
-      cur_vth_ = tgt_vth_;
+    bool use_smoothing = get_parameter("use_smoothing").as_bool();
+    bool use_ramp      = get_parameter("use_ramp").as_bool();
+
+    double raw_vx  = tgt_vx_;
+    double raw_vy  = tgt_vy_;
+    double raw_vth = tgt_vth_;
+
+    // 1) まず平滑化 (target を滑らかに)
+    if (use_smoothing) {
+      double tau_lin = std::max(1e-4, get_parameter("smoothing_tau_linear").as_double());
+      double tau_ang = std::max(1e-4, get_parameter("smoothing_tau_angular").as_double());
+      double alpha_lin = dt / (tau_lin + dt);
+      double alpha_ang = dt / (tau_ang + dt);
+      filt_tgt_vx_  += alpha_lin * (raw_vx  - filt_tgt_vx_);
+      filt_tgt_vy_  += alpha_lin * (raw_vy  - filt_tgt_vy_);
+      filt_tgt_vth_ += alpha_ang * (raw_vth - filt_tgt_vth_);
     } else {
-      double ramp_lin = get_parameter("ramp_time_linear").as_double();
-      double ramp_ang = get_parameter("ramp_time_angular").as_double();
-      ramp_lin = std::max(0.01, ramp_lin);
-      ramp_ang = std::max(0.01, ramp_ang);
-      // 1秒あたり (tgt - cur)/ramp_time 分だけ近づく簡易ランプ
-      cur_vx_  = approach(cur_vx_,  tgt_vx_,  dt / ramp_lin);
-      cur_vy_  = approach(cur_vy_,  tgt_vy_,  dt / ramp_lin);
-      cur_vth_ = approach(cur_vth_, tgt_vth_, dt / ramp_ang);
+      filt_tgt_vx_  = raw_vx;
+      filt_tgt_vy_  = raw_vy;
+      filt_tgt_vth_ = raw_vth;
+    }
+
+    // 2) 次にランプ(任意)で現在速度に近づける
+    if (!use_ramp) {
+      cur_vx_  = filt_tgt_vx_;
+      cur_vy_  = filt_tgt_vy_;
+      cur_vth_ = filt_tgt_vth_;
+    } else {
+      double rtl = std::max(0.01, get_parameter("ramp_time_linear").as_double());
+      double rta = std::max(0.01, get_parameter("ramp_time_angular").as_double());
+      double ratio_lin = std::clamp(dt / rtl, 0.0, 1.0);
+      double ratio_ang = std::clamp(dt / rta, 0.0, 1.0);
+      cur_vx_  = cur_vx_  + (filt_tgt_vx_  - cur_vx_)  * ratio_lin;
+      cur_vy_  = cur_vy_  + (filt_tgt_vy_  - cur_vy_)  * ratio_lin;
+      cur_vth_ = cur_vth_ + (filt_tgt_vth_ - cur_vth_) * ratio_ang;
     }
 
     latest_cmd_[0] = cur_vx_;
     latest_cmd_[1] = cur_vy_;
     latest_cmd_[2] = cur_vth_;
     latest_cmd_[3] = 0.0;
-  }
-
-  double approach(double current, double target, double ratio)
-  {
-    ratio = std::clamp(ratio, 0.0, 1.0);
-    return current + (target - current) * ratio;
   }
 
   /* ===== YARP 送信 ===== */
@@ -146,14 +164,13 @@ private:
   /* ===== エンコーダ読み取り + オドメトリ更新 ===== */
   void readEncoderAndUpdate(double dt, const rclcpp::Time& stamp)
   {
-    // 非ブロッキング読み取り
     yarp::os::Bottle* enc = g_enc_port.read(false);
     if(!enc) {
       failure_count_++;
       if (failure_count_ % 50 == 0) {
         RCLCPP_WARN(get_logger(), "Encoder read failed (%d)", failure_count_);
       }
-      publishOdometry(stamp, 0.0, 0.0, 0.0); // 読めない周期の扱いは用途に応じて変更
+      publishOdometry(stamp, 0.0, 0.0, 0.0); // 読めない周期の扱いは必要に応じ変更
       return;
     }
 
@@ -167,20 +184,15 @@ private:
     double vy  = enc->get(1).asFloat64();
     double vth = enc->get(2).asFloat64();
 
-    if (invalidValue(vx) || invalidValue(vy) || invalidValue(vth)) {
+    if (std::isnan(vx) || std::isnan(vy) || std::isnan(vth) ||
+        std::isinf(vx) || std::isinf(vy) || std::isinf(vth)) {
       encoder_error_count_++;
       RCLCPP_WARN(get_logger(), "Invalid encoder value (NaN/Inf)");
       return;
     }
 
-    // オドメトリ積分（(vx,vy) は機体座標系）
     integrate(vx, vy, vth, dt);
     publishOdometry(stamp, vx, vy, vth);
-  }
-
-  bool invalidValue(double v) const
-  {
-    return std::isnan(v) || std::isinf(v);
   }
 
   void integrate(double vx, double vy, double vth, double dt)
@@ -190,12 +202,10 @@ private:
     x_   += (vx * c - vy * s) * dt;
     y_   += (vx * s + vy * c) * dt;
     yaw_ += vth * dt;
-    // -pi~pi 正規化
     if (yaw_ >  M_PI) yaw_ -= 2*M_PI;
     if (yaw_ < -M_PI) yaw_ += 2*M_PI;
   }
 
-  /* ===== Odometry 出力 ===== */
   void publishOdometry(const rclcpp::Time& stamp, double vx, double vy, double vth)
   {
     nav_msgs::msg::Odometry odom;
@@ -241,9 +251,14 @@ private:
   // 座標・姿勢
   double x_, y_, yaw_;
 
-  // 速度（現在値 / 目標値）
+  // 現在速度
   double cur_vx_, cur_vy_, cur_vth_;
+
+  // 入力ターゲット
   double tgt_vx_, tgt_vy_, tgt_vth_;
+
+  // 平滑化後ターゲット
+  double filt_tgt_vx_, filt_tgt_vy_, filt_tgt_vth_;
 
   // 送信用
   double latest_cmd_[4] = {0,0,0,0};
