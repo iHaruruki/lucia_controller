@@ -14,43 +14,12 @@ ekf_odom:
     # 15 個の bool は、robot_localization が扱う状態ベクトル (順番固定) のどの要素をこのセンサメッセージから利用するかを指定するマスク
     odom0: wheel_odom
     # [x,y,z, roll,pitch,yaw,  vx,  vy,  vz,  vroll, vpitch, vyaw,  ax, ay, az]
-    odom0_config: [false,false,false, false,false,false,  true, true, false, false, false, true, false,false,false]
+    odom0_config: [false, false, false, false, false, false, true, true, false, false, false, true, false, false, false]
     odom0_differential: false #true にすると、そのセンサが与える pose を差分（前回との差分＝速度的情報）として扱うモード。wheel odom は既に速度も含んでいるので通常 false
     odom0_relative: false # true にするとセンサの pose は初回値からの相対変化として扱われる（センサ自身が jump する可能性がある場合の手当て）。
     odom0_queue_size: 5
     odom0_nodelay: false
     odom0_pose_rejection_threshold: 5.0    # [m / rad] 相当（Poseの大外れカット）
     odom0_twist_rejection_threshold: 1.5   # [m/s / rad/s] の大外れカット
-
-    # --- プロセス雑音共分散（例：2D運用の目安）---
-    # 6×6 行メジャ: [x y z r p y, vx vy vz vr vp vyaw]
-    # process_noise_covariance: [
-    #   0.05, 0.0,    0.0,    0.0,    0.0,    0.0,
-    #   0.0,    0.07, 0.0,    0.0,    0.0,    0.0,     # y は x よりやや大きめ（横滑り配慮）
-    #   0.0,    0.0,    1.0,  0.0,    0.0,    0.0,
-    #   0.0,    0.0,    0.0,    1.0,  0.0,    0.0,
-    #   0.0,    0.0,    0.0,    0.0,    1.0,  0.0,
-    #   0.0,    0.0,    0.0,    0.0,    0.0,    0.03,  # yaw
-
-    #   0.08, 0.0,    0.0,    0.0,    0.0,    0.0,     # vx
-    #   0.0,    0.10, 0.0,    0.0,    0.0,    0.0,     # vy（vxより少し大）
-    #   0.0,    0.0,    1.0,  0.0,    0.0,    0.0,
-    #   0.0,    0.0,    0.0,    1.0,  0.0,    0.0,
-    #   0.0,    0.0,    0.0,    0.0,    1.0,  0.0,
-    #   0.0,    0.0,    0.0,    0.0,    0.0,    0.05   # vyaw
-    # ]
-
-    # # --- 初期推定共分散（例）---
-    # initial_estimate_covariance: [
-    #   0.5, 0.0,   0.0,   0.0,   0.0,   0.0,
-    #   0.0,   0.6, 0.0,   0.0,   0.0,   0.0,   # y をやや大きめ開始
-    #   0.0,   0.0,   1e3, 0.0,   0.0,   0.0,
-    #   0.0,   0.0,   0.0,   1e3, 0.0,   0.0,
-    #   0.0,   0.0,   0.0,   0.0,   1e3, 0.0,
-    #   0.0,   0.0,   0.0,   0.0,   0.0,   0.4, # yaw 初期不確かさ
-    #   0.3, 0.0,   0.0,   0.0,   0.0,   0.0,    0.4, 0.0,   0.0,   0.0,   0.0,   0.0,    0.0,   0.0,   0.0
-    #   # 速度対角（vx=0.3, vy=0.4, vyaw=0.3〜0.5 目安）
-    # ]
-
     # デバッグしたいとき:
     print_diagnostics: true
