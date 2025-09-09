@@ -10,9 +10,9 @@ ekf_odom:
     base_link_frame: base_link
     world_frame: odom
 
-    # Wheel odometry 入力
-    # 15 個の bool は、robot_localization が扱う状態ベクトル (順番固定) のどの要素をこのセンサメッセージから利用するかを指定するマスク
+    # Wheel odometry
     odom0: wheel_odom
+    # 15 個の bool は、robot_localization が扱う状態ベクトル (順番固定) のどの要素をこのセンサメッセージから利用するかを指定するマスク
     # [x,y,z, roll,pitch,yaw,  vx,  vy,  vz,  vroll, vpitch, vyaw,  ax, ay, az]
     odom0_config: [false, false, false, false, false, false, true, true, false, false, false, true, false, false, false]
     odom0_differential: false #true にすると、そのセンサが与える pose を差分（前回との差分＝速度的情報）として扱うモード。wheel odom は既に速度も含んでいるので通常 false
