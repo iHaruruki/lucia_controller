@@ -162,7 +162,9 @@ private:
                 RCLCPP_WARN(get_logger(), "Encoder read failed (%d)", failure_count_);
             }
             // 読めなかった周期はゼロ速度とみなす（必要なら保持）
-            publishOdometry(stamp, 0.0, 0.0, 0.0);
+            //publishOdometry(stamp, 0.0, 0.0, 0.0);
+            // 直前の速度を保持する
+            publishOdometry(stamp, cur_vx_, cur_vy_, cur_vth_);
             return;
         }
         if (enc->size() < 3) {
