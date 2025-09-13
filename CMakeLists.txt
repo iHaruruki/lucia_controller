@@ -53,6 +53,7 @@ target_link_libraries(lucia_controller_node
 
 install(TARGETS
   lucia_controller_node
+  lucia_controller_ekf_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
