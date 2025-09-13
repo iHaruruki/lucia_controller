@@ -17,7 +17,7 @@ def generate_launch_description():
         ),
         Node(
             package='lucia_controller',
-            executable='lucia_controller_node',   # 実際のターゲット名に合わせる
+            executable='lucia_controller_ekf_node',   # 実際のターゲット名に合わせる
             name='lucia_controller',
             parameters=[
                 {"publish_tf": False},

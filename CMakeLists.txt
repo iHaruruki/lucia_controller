@@ -37,7 +37,13 @@ include_directories(
   include
 )
 
-# 単一ノード (controller.cpp)
+add_executable(lucia_controller_ekf_node src/controller_ekf.cpp)
+ament_target_dependencies(lucia_controller_ekf_node ${DEPENDENCIES})
+target_link_libraries(lucia_controller_ekf_node
+  YARP::YARP_os
+  YARP::YARP_init
+)
+
 add_executable(lucia_controller_node src/controller.cpp)
 ament_target_dependencies(lucia_controller_node ${DEPENDENCIES})
 target_link_libraries(lucia_controller_node
