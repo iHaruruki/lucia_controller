@@ -50,7 +50,7 @@ Change the namespace
 $ yarp namespace /lucia_g
 ```
 ## ROS2 Packages
-```
+```shell
 $ sudo apt update
 $ sudo apt install ros-humble-hardware-interface
 $ cd ~/ros2_ws/src  #Go to ros workspace
@@ -67,8 +67,12 @@ $ source install/setup.bash
 4. Release the emergency stop button
 5. Switch Lucia's mode to [Remote Movement] (`remote`モードに切り替える)
 6. Launch ROS2 Node
+```shell
+ros2 launch lucia_controller bringup.launch.py 
 ```
-$ ros2 run lucia_controller lucia_controller_node
+If you want to use EKF
+```shell
+ros2 launch lucia_controller bringup_ekf.launch.py
 ```
 ## License
 ## Authors
