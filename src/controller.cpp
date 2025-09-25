@@ -40,11 +40,11 @@ public:
     // smoothing_tau_* : 大きいほど滑らか(遅い)、小さいほど速い
     declare_parameter<bool>("use_smoothing", true);
     declare_parameter<double>("smoothing_tau_linear", 0.3);
-    declare_parameter<double>("smoothing_tau_angular", 0.2);
+    declare_parameter<double>("smoothing_tau_angular", 0.1);
 
     declare_parameter<bool>("use_ramp", true);
     declare_parameter<double>("ramp_time_linear", 0.6);   // 目標到達にかける時間(簡易)
-    declare_parameter<double>("ramp_time_angular", 0.6);
+    declare_parameter<double>("ramp_time_angular", 0.4);
 
     // YARPネットワーク確認
     yarp::os::Network yarp;
