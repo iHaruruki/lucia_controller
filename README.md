@@ -127,7 +127,7 @@ ros2 launch lucia_controller bringup_ekf.launch.py
 
 ## 👤 Authors
 
-- **iHaruruki** — Main author & maintainer
+- **[iHaruruki](https://github.com/iHaruruki)** — Main author & maintainer
 
 ## References
 - YARP: https://github.com/robotology/yarp
