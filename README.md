@@ -1,12 +1,60 @@
 # lucia_controller
-### Node and Topic
+> An elegant bridge between Lucia robots, YARP, and ROS 2 🚀
+
+
+Table of Contents
+- Features
+- Nodes & Topics
+- Requirements
+- Quick Setup
+  - System dependencies
+  - YCM (YARP CMake Modules)
+  - YARP build & configuration
+  - ROS 2 package build
+- Usage
+- YARP network example
+- Troubleshooting
+- Contributing
+- License
+- Authors
+- References
+
+---
+
+## 🚀 Overview
+**lucia_controller** connects Lucia robot hardware to your ROS 2 ecosystem using YARP, featuring:
+- Effortless launch for hardware interfaces & sensor fusion (EKF)
+- Clean networking, reproducible builds
+- Modern, readable code
+
+## 📦 Features
+- Seamless integration between YARP and ROS 2.
+- Launch files to bring up hardware interfaces and optional EKF.
+- Clear build and network configuration steps for reproducible setup.
+
+## 🧩 Nodes & Topics
+- `lucia_controller_node`: main hardware interface
+- **Example Topics:**
+  - `/cmd_vel` _(geometry_msgs/Twist)_
+  - `/odom` _(nav_msgs/Odometry)_
+  - `/joint_states` _(sensor_msgs/JointState)_
+  - `/diagnostics`
+
+## 📋 Requirements
+- **OS:** Ubuntu 22.04
+- **Middleware:** ROS 2 Humble
+- **Build tools:** cmake, git, build-essential
+- **YARP:** recommended build from source
+- **Dev libraries:** see Quick Setup
+
 ## Setup
 ### YRAP
-Required Dependencies
+
+Install basic build tools
 ```shell
-$ sudo apt install build-essential git cmake cmake-curses-gui
+sudo apt install build-essential git cmake cmake-curses-gui
 ```
-Install YCM from source codes
+Install YCM (YARP CMake Modules) from source
 ```shell
 $ git clone https://github.com/robotology/ycm/
 $ cd ycm && mkdir build && cd build
@@ -14,11 +62,11 @@ $ cmake ..
 $ make
 $ sudo make install
 ```
-Install other dependences
+Additional dependencies
 ```shell
 sudo apt-get install -y build-essential git cmake cmake-curses-gui ycm-cmake-modules libeigen3-dev libace-dev libedit-dev libsqlite3-dev libtinyxml-dev qtbase5-dev qtdeclarative5-dev qtmultimedia5-dev qml-module-qtquick2 qml-module-qtquick-window2 qml-module-qtmultimedia qml-module-qtquick-dialogs qml-module-qtquick-controls qml-module-qt-labs-folderlistmodel qml-module-qt-labs-settings libqcustomplot-dev libgraphviz-dev libjpeg-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-libav
 ```
-YARP Install
+Build and install YARP
 ```shell
 $ git clone https://github.com/robotology/yarp.git
 $ cd yarp && mkdir build && cd build
@@ -27,29 +75,30 @@ $ make -j8
 $ sudo make install
 $ sudo ldconfig
 ```
-Check YARP functions correctly
+Verify YARP server
 ```shell
 $ yarpserver
-$ CTRL-C
+# Press CTRL-C to stop
+# You should see "Ok. Ready!" if it started successfully.
 ```
-`If "Ok. Ready!" is printed, it functions correctly`
-#### YARP Network setting
+
+YARP network configuration example
 ```shell
 $ yarp conf
 $ cd ~/.config/yarp/
 $ cp yarp.conf _lucia_g.conf
 $ nano _lucia_g.conf
 ```
-Change the code of `_lucia_g.conf`
+YARP network configuration example
 ```fiff_plaintext
 - 192.168.27.132 10000 yarp
 + 192.168.1.221 10000 yarp
 ```
-Change the namespace
+Set YARP namespace
 ```shell
 $ yarp namespace /lucia_g
 ```
-## ROS2 Packages
+## ROS2 Packages install & build
 ```shell
 $ sudo apt update
 $ sudo apt install ros-humble-hardware-interface
@@ -60,7 +109,7 @@ $ colcon build --symlink-install
 $ source install/setup.bash
 ```
 
-## Usage
+## 🛠️ Usage
 1. Power on Lucia and NUC21
 2. Power on [Lucia-04-Green-01-Main]
 3. (Wi-Fi settings) Connect to [lucia-g-router]
@@ -70,10 +119,17 @@ $ source install/setup.bash
 ```shell
 ros2 launch lucia_controller bringup.launch.py 
 ```
-If you want to use EKF
+To run with EKF enabled:
 ```shell
 ros2 launch lucia_controller bringup_ekf.launch.py
 ```
 ## License
-## Authors
+
+## 👤 Authors
+
+- **iHaruruki** — Main author & maintainer
+
 ## References
+- YARP: https://github.com/robotology/yarp
+- YCM: https://github.com/robotology/ycm
+- ROS 2 Humble: https://docs.ros.org/en/humble/
