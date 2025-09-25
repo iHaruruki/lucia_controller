@@ -123,13 +123,13 @@ To run with EKF enabled:
 ```shell
 ros2 launch lucia_controller bringup_ekf.launch.py
 ```
-## License
+## 📜 License
 
 ## 👤 Authors
 
 - **[iHaruruki](https://github.com/iHaruruki)** — Main author & maintainer
 
-## References
+## 🔗 References
 - YARP: https://github.com/robotology/yarp
 - YCM: https://github.com/robotology/ycm
 - ROS 2 Humble: https://docs.ros.org/en/humble/
