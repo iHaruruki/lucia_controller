@@ -44,7 +44,7 @@ public:
 
     declare_parameter<bool>("use_ramp", true);
     declare_parameter<double>("ramp_time_linear", 0.6);   // 目標到達にかける時間(簡易)
-    declare_parameter<double>("ramp_time_angular", 0.4);
+    declare_parameter<double>("ramp_time_angular", 0.2);
 
     // YARPネットワーク確認
     yarp::os::Network yarp;
