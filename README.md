@@ -99,6 +99,10 @@ Set YARP namespace
 $ yarp namespace /lucia_g
 ```
 ## ROS2 Packages install & build
+Install robot-localization
+```bash
+sudo apt install ros-humble-robot-localization
+```
 ```shell
 $ sudo apt update
 $ sudo apt install ros-humble-hardware-interface
