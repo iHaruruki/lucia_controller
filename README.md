@@ -56,11 +56,11 @@ sudo apt install build-essential git cmake cmake-curses-gui
 ```
 Install YCM (YARP CMake Modules) from source
 ```shell
-$ git clone https://github.com/robotology/ycm/
-$ cd ycm && mkdir build && cd build
-$ cmake ..
-$ make
-$ sudo make install
+git clone https://github.com/robotology/ycm/
+cd ycm && mkdir build && cd build
+cmake ..
+make
+sudo make install
 ```
 Additional dependencies
 ```shell
@@ -68,26 +68,26 @@ sudo apt-get install -y build-essential git cmake cmake-curses-gui ycm-cmake-mod
 ```
 Build and install YARP
 ```shell
-$ git clone https://github.com/robotology/yarp.git
-$ cd yarp && mkdir build && cd build
-$ cmake ..
-$ make -j8
-$ sudo make install
-$ sudo ldconfig
+git clone -b yarp-3.11 https://github.com/robotology/yarp.git
+cd yarp && mkdir build && cd build
+cmake ..
+make -j8
+sudo make install
+sudo ldconfig
 ```
 Verify YARP server
 ```shell
-$ yarpserver
+yarpserver
 # Press CTRL-C to stop
 # You should see "Ok. Ready!" if it started successfully.
 ```
 
 YARP network configuration example
 ```shell
-$ yarp conf
-$ cd ~/.config/yarp/
-$ cp yarp.conf _lucia_g.conf
-$ nano _lucia_g.conf
+yarp conf
+cd ~/.config/yarp/
+cp yarp.conf _lucia_g.conf
+nano _lucia_g.conf
 ```
 YARP network configuration example
 ```fiff_plaintext
@@ -96,7 +96,7 @@ YARP network configuration example
 ```
 Set YARP namespace
 ```shell
-$ yarp namespace /lucia_g
+yarp namespace /lucia_g
 ```
 ## ROS2 Packages install & build
 Install robot-localization
@@ -104,13 +104,13 @@ Install robot-localization
 sudo apt install ros-humble-robot-localization
 ```
 ```shell
-$ sudo apt update
-$ sudo apt install ros-humble-hardware-interface
-$ cd ~/ros2_ws/src  #Go to ros workspace
-$ git clone https://github.com/iHaruruki/lucia_controller.git #clone this package
-$ cd ~/ros2_ws
-$ colcon build --symlink-install
-$ source install/setup.bash
+sudo apt update
+sudo apt install ros-humble-hardware-interface
+cd ~/ros2_ws/src  #Go to ros workspace
+git clone https://github.com/iHaruruki/lucia_controller.git #clone this package
+cd ~/ros2_ws
+colcon build --symlink-install
+source install/setup.bash
 ```
 
 ## 🛠️ Usage
