@@ -104,29 +104,29 @@ yarp namespace /lucia_g
 ## ROS2 Packages install & build
 Install robot-localization
 ```bash
+sudo apt update
 sudo apt install ros-humble-robot-localization
 ```
+Clone & Build
 ```shell
-sudo apt update
-sudo apt install ros-humble-hardware-interface
 cd ~/ros2_ws/src  #Go to ros workspace
 git clone https://github.com/iHaruruki/lucia_controller.git #clone this package
 cd ~/ros2_ws
-colcon build --symlink-install
+colcon build --symlink-install --packages-select lucia_controller
 source install/setup.bash
 ```
 
 ## 🛠️ Usage
-1. Power on Lucia and NUC21
+1. Power on Lucia and NUC 21
 2. Power on [Lucia-04-Green-01-Main]
 3. (Wi-Fi settings) Connect to [lucia-g-router]
 4. Release the emergency stop button
-5. Switch Lucia's mode to [Remote Movement] (`remote`モードに切り替える)
+5. Switch Lucia's mode to [Remote] (`remote`モードに切り替える)
 6. Launch ROS2 Node
 ```shell
 ros2 launch lucia_controller bringup.launch.py 
 ```
-To run with EKF enabled:
+If you want to use EKF, pelase run:
 ```shell
 ros2 launch lucia_controller bringup_ekf.launch.py
 ```
@@ -137,6 +137,7 @@ ros2 launch lucia_controller bringup_ekf.launch.py
 - **[iHaruruki](https://github.com/iHaruruki)** — Main author & maintainer
 
 ## 🔗 References
-- YARP: https://github.com/robotology/yarp
-- YCM: https://github.com/robotology/ycm
-- ROS 2 Humble: https://docs.ros.org/en/humble/
+- [YARP](https://github.com/robotology/yarp)
+- [YCM](https://github.com/robotology/ycm)
+- [ROS 2 Humble](https://docs.ros.org/en/humble/)
+- [robot localization](https://docs.ros.org/en/melodic/api/robot_localization/html/index.html)
