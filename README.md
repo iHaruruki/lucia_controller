@@ -76,7 +76,7 @@ sudo make install
 sudo ldconfig
 ```
 > [!NOTE]
-> Use a version older than YARP-3.11
+> Use a version older than `YARP-3.11`
 
 Verify YARP server
 ```shell
@@ -87,15 +87,16 @@ yarpserver
 
 YARP network configuration example
 ```shell
+cd ~
 yarp conf
 cd ~/.config/yarp/
 cp yarp.conf _lucia_g.conf
 nano _lucia_g.conf
 ```
-YARP network configuration example
-```fiff_plaintext
-- 192.168.27.132 10000 yarp
-+ 192.168.1.221 10000 yarp
+YARP network configuration example  
+`_lucia_g.conf`
+```yaml
+192.168.1.221 10000 yarp
 ```
 Set YARP namespace
 ```shell
