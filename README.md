@@ -34,56 +34,22 @@ Table of Contents
 
 ## 🧩 Nodes & Topics
 ```mermaid
-graph LR
-    %% External Command Source
-    user((外部コマンド))
-    
-    %% ROS Topics
-    cmdvel["/cmd_vel<br/>geometry_msgs/Twist"]
-    odom["/odom<br/>nav_msgs/Odometry"]
-    wheelodom["/wheel_odom<br/>nav_msgs/Odometry"]
-    odomfilt["/odometry/filtered<br/>nav_msgs/Odometry"]
-    
-    %% ROS Nodes
-    controller((lucia_controller_node))
-    controller_ekf((lucia_controller_ekf_node))
-    ekf_node((ekf_odom))
-    
-    %% YARP Ports
-    yarp_cmd["YARP:  /robot_driver/command:o"]
-    yarp_enc["YARP: /robot_driver/encoder:i"]
-    hardware((Lucia Robot Hardware))
-    
-    %% Connections for standard mode
-    user -->|publish| cmdvel
-    cmdvel -->|subscribe| controller
-    controller -->|publish| odom
-    
-    %% Connections for EKF mode
-    cmdvel -->|subscribe| controller_ekf
-    controller_ekf -->|publish| wheelodom
-    wheelodom -->|subscribe| ekf_node
-    ekf_node -->|publish| odomfilt
-    
-    %% YARP connections
-    controller -.->|write| yarp_cmd
-    controller_ekf -.->|write| yarp_cmd
-    yarp_cmd -.-> hardware
-    hardware -.-> yarp_enc
-    yarp_enc -.->|read| controller
-    yarp_enc -.->|read| controller_ekf
-    
-    %% Styling
-    style cmdvel fill:#FFE4B5,stroke:#FF8C00,stroke-width:2px
-    style odom fill:#FFE4B5,stroke:#FF8C00,stroke-width:2px
-    style wheelodom fill:#FFE4B5,stroke:#FF8C00,stroke-width:2px
-    style odomfilt fill:#FFE4B5,stroke:#FF8C00,stroke-width:2px
-    style controller fill:#87CEEB,stroke:#4682B4,stroke-width:2px
-    style controller_ekf fill:#87CEEB,stroke:#4682B4,stroke-width:2px
-    style ekf_node fill:#98FB98,stroke:#228B22,stroke-width:2px
-    style hardware fill:#FFB6C1,stroke:#DC143C,stroke-width:2px
-    style yarp_cmd fill:#E6E6FA,stroke:#9370DB,stroke-width:2px
-    style yarp_enc fill:#E6E6FA,stroke:#9370DB,stroke-width:2px
+---
+config:
+  layout: dagre
+---
+flowchart TD
+    cmdvel["/cmd_vel<br>geometry_msgs/Twist"]
+    cmdvel -- subscribe --> controller(["lucia_controller_node"]) & controller_ekf(["lucia_controller_ekf_node"])
+    controller -- publish --> odom["/odom<br>nav_msgs/Odometry"]
+    controller_ekf -- publish --> wheelodom["/wheel_odom<br>nav_msgs/Odometry"]
+    wheelodom -- subscribe --> ekf_node(["ekf_odom"])
+    ekf_node -- publish --> odomfilt["/odometry/filtered<br>nav_msgs/Odometry"]
+    controller -. write .-> yarp_cmd["YARP:  /robot_driver/command:o"]
+    controller_ekf -. write .-> yarp_cmd
+    yarp_cmd -.-> hardware(["Lucia Robot Hardware"])
+    hardware -.-> yarp_enc["YARP: /robot_driver/encoder:i"]
+    yarp_enc -. read .-> controller & controller_ekf
 ```
 - `lucia_controller_node`: main hardware interface
 - **Example Topics:**
