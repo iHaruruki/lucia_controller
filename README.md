@@ -36,11 +36,10 @@ Table of Contents
 ```mermaid
 ---
 config:
-  layout: dagre
+  layout: elk
 ---
-flowchart TD
-    cmdvel["/cmd_vel<br>geometry_msgs/Twist"]
-    cmdvel -- subscribe --> controller(["lucia_controller_node"]) & controller_ekf(["lucia_controller_ekf_node"])
+flowchart TB
+    cmdvel["/cmd_vel<br>geometry_msgs/Twist"] -- subscribe --> controller(["lucia_controller_node"]) & controller_ekf(["lucia_controller_ekf_node"])
     controller -- publish --> odom["/odom<br>nav_msgs/Odometry"]
     controller_ekf -- publish --> wheelodom["/wheel_odom<br>nav_msgs/Odometry"]
     wheelodom -- subscribe --> ekf_node(["ekf_odom"])
