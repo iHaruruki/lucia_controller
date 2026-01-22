@@ -40,7 +40,7 @@ Table of Contents
   - `/joint_states` _(sensor_msgs/JointState)_
   - `/diagnostics`
 
-[Nodea & Topics](/media/node_motor.png)
+![Nodea & Topics](/media/node_motor.png)
 
 ## 📋 Requirements
 - **OS:** Ubuntu 22.04
