@@ -33,6 +33,62 @@ Table of Contents
 - Clear build and network configuration steps for reproducible setup.
 
 ## 🧩 Nodes & Topics
+```mermaid
+graph LR
+    subgraph "ROS 2 Network"
+        cmdvel["/cmd_vel<br/>(geometry_msgs/Twist)"]
+        odom["/odom<br/>(nav_msgs/Odometry)"]
+        wheelodom["/wheel_odom<br/>(nav_msgs/Odometry)"]
+        odomfilt["/odometry/filtered<br/>(nav_msgs/Odometry)"]
+    end
+    
+    subgraph "ROS 2 Nodes"
+        controller["lucia_controller_node<br/>(robot_driver_min)"]
+        controller_ekf["lucia_controller_ekf_node<br/>(robot_driver_ekf)"]
+        ekf["ekf_odom<br/>(robot_localization)"]
+    end
+    
+    subgraph "YARP Network"
+        yarp_cmd_out["/robot_driver/command: o"]
+        yarp_enc_in["/robot_driver/encoder:i"]
+        yarp_vehicle_cmd["/vehicleDriver/remote: i"]
+        yarp_vehicle_enc["/vehicleDriver/encoder:o"]
+    end
+    
+    subgraph "Hardware"
+        lucia["Lucia Robot"]
+    end
+    
+    %% ROS 2 connections
+    cmdvel -->|subscribe| controller
+    controller -->|publish| odom
+    
+    cmdvel -->|subscribe| controller_ekf
+    controller_ekf -->|publish| wheelodom
+    wheelodom -->|subscribe| ekf
+    ekf -->|publish| odomfilt
+    
+    %% YARP connections (controller_node)
+    controller -.->|YARP| yarp_cmd_out
+    yarp_cmd_out -.->|YARP connect| yarp_vehicle_cmd
+    yarp_vehicle_cmd -.->|YARP| lucia
+    lucia -.->|YARP| yarp_vehicle_enc
+    yarp_vehicle_enc -.->|YARP connect| yarp_enc_in
+    yarp_enc_in -.->|YARP| controller
+    
+    %% YARP connections (controller_ekf_node)
+    controller_ekf -.->|YARP| yarp_cmd_out
+    yarp_enc_in -.->|YARP| controller_ekf
+    
+    %% TF publishing (optional)
+    controller -.->|TF| tf_odom["TF:  odom → base_footprint"]
+    controller_ekf -.->|TF (optional)| tf_wheel["TF: wheel_odom → base_link"]
+    
+    style controller fill:#e1f5ff
+    style controller_ekf fill:#e1f5ff
+    style ekf fill:#ffe1e1
+    style lucia fill:#fff4e1
+```
 - `lucia_controller_node`: main hardware interface
 - **Example Topics:**
   - `/cmd_vel` _(geometry_msgs/Twist)_
