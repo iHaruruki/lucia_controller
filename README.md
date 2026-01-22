@@ -35,54 +35,55 @@ Table of Contents
 ## 🧩 Nodes & Topics
 ```mermaid
 graph LR
-    subgraph "ROS 2 Network"
-        cmdvel["/cmd_vel<br/>(geometry_msgs/Twist)"]
-        odom["/odom<br/>(nav_msgs/Odometry)"]
-        wheelodom["/wheel_odom<br/>(nav_msgs/Odometry)"]
-        odomfilt["/odometry/filtered<br/>(nav_msgs/Odometry)"]
-    end
+    %% External Command Source
+    user((外部コマンド))
     
-    subgraph "ROS 2 Nodes"
-        controller["lucia_controller_node<br/>(robot_driver_min)"]
-        controller_ekf["lucia_controller_ekf_node<br/>(robot_driver_ekf)"]
-        ekf["ekf_odom<br/>(robot_localization)"]
-    end
+    %% ROS Topics
+    cmdvel["/cmd_vel<br/>geometry_msgs/Twist"]
+    odom["/odom<br/>nav_msgs/Odometry"]
+    wheelodom["/wheel_odom<br/>nav_msgs/Odometry"]
+    odomfilt["/odometry/filtered<br/>nav_msgs/Odometry"]
     
-    subgraph "YARP Network"
-        yarp_cmd_out["/robot_driver/command: o"]
-        yarp_enc_in["/robot_driver/encoder:i"]
-        yarp_vehicle_cmd["/vehicleDriver/remote: i"]
-        yarp_vehicle_enc["/vehicleDriver/encoder:o"]
-    end
+    %% ROS Nodes
+    controller((lucia_controller_node))
+    controller_ekf((lucia_controller_ekf_node))
+    ekf_node((ekf_odom))
     
-    subgraph "Hardware"
-        lucia["Lucia Robot"]
-    end
+    %% YARP Ports
+    yarp_cmd["YARP:  /robot_driver/command:o"]
+    yarp_enc["YARP: /robot_driver/encoder:i"]
+    hardware((Lucia Robot Hardware))
     
-    %% ROS 2 connections
+    %% Connections for standard mode
+    user -->|publish| cmdvel
     cmdvel -->|subscribe| controller
     controller -->|publish| odom
     
+    %% Connections for EKF mode
     cmdvel -->|subscribe| controller_ekf
     controller_ekf -->|publish| wheelodom
-    wheelodom -->|subscribe| ekf
-    ekf -->|publish| odomfilt
+    wheelodom -->|subscribe| ekf_node
+    ekf_node -->|publish| odomfilt
     
     %% YARP connections
-    controller -.->|write| yarp_cmd_out
-    yarp_cmd_out -.->|connect| yarp_vehicle_cmd
-    yarp_vehicle_cmd -.-> lucia
-    lucia -.-> yarp_vehicle_enc
-    yarp_vehicle_enc -.->|connect| yarp_enc_in
-    yarp_enc_in -.->|read| controller
+    controller -.->|write| yarp_cmd
+    controller_ekf -.->|write| yarp_cmd
+    yarp_cmd -.-> hardware
+    hardware -.-> yarp_enc
+    yarp_enc -.->|read| controller
+    yarp_enc -.->|read| controller_ekf
     
-    controller_ekf -.->|write| yarp_cmd_out
-    yarp_enc_in -.->|read| controller_ekf
-    
-    style controller fill:#e1f5ff
-    style controller_ekf fill:#e1f5ff
-    style ekf fill:#ffe1e1
-    style lucia fill:#fff4e1
+    %% Styling
+    style cmdvel fill:#FFE4B5,stroke:#FF8C00,stroke-width:2px
+    style odom fill:#FFE4B5,stroke:#FF8C00,stroke-width:2px
+    style wheelodom fill:#FFE4B5,stroke:#FF8C00,stroke-width:2px
+    style odomfilt fill:#FFE4B5,stroke:#FF8C00,stroke-width:2px
+    style controller fill:#87CEEB,stroke:#4682B4,stroke-width:2px
+    style controller_ekf fill:#87CEEB,stroke:#4682B4,stroke-width:2px
+    style ekf_node fill:#98FB98,stroke:#228B22,stroke-width:2px
+    style hardware fill:#FFB6C1,stroke:#DC143C,stroke-width:2px
+    style yarp_cmd fill:#E6E6FA,stroke:#9370DB,stroke-width:2px
+    style yarp_enc fill:#E6E6FA,stroke:#9370DB,stroke-width:2px
 ```
 - `lucia_controller_node`: main hardware interface
 - **Example Topics:**
