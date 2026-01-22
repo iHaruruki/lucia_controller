@@ -56,11 +56,11 @@ sudo apt install build-essential git cmake cmake-curses-gui
 ```
 Install YCM (YARP CMake Modules) from source
 ```shell
-$ git clone https://github.com/robotology/ycm/
-$ cd ycm && mkdir build && cd build
-$ cmake ..
-$ make
-$ sudo make install
+git clone https://github.com/robotology/ycm/
+cd ycm && mkdir build && cd build
+cmake ..
+make
+sudo make install
 ```
 Additional dependencies
 ```shell
@@ -68,62 +68,66 @@ sudo apt-get install -y build-essential git cmake cmake-curses-gui ycm-cmake-mod
 ```
 Build and install YARP
 ```shell
-$ git clone https://github.com/robotology/yarp.git
-$ cd yarp && mkdir build && cd build
-$ cmake ..
-$ make -j8
-$ sudo make install
-$ sudo ldconfig
+git clone -b yarp-3.11 https://github.com/robotology/yarp.git
+cd yarp && mkdir build && cd build
+cmake ..
+make -j8
+sudo make install
+sudo ldconfig
 ```
+> [!NOTE]
+> Use a version older than `YARP-3.11`
+
 Verify YARP server
 ```shell
-$ yarpserver
+yarpserver
 # Press CTRL-C to stop
 # You should see "Ok. Ready!" if it started successfully.
 ```
 
 YARP network configuration example
 ```shell
-$ yarp conf
-$ cd ~/.config/yarp/
-$ cp yarp.conf _lucia_g.conf
-$ nano _lucia_g.conf
+cd ~
+yarp conf
+cd ~/.config/yarp/
+cp yarp.conf _lucia_g.conf
+nano _lucia_g.conf
 ```
-YARP network configuration example
-```fiff_plaintext
-- 192.168.27.132 10000 yarp
-+ 192.168.1.221 10000 yarp
+YARP network configuration example  
+`_lucia_g.conf`
+```yaml
+192.168.1.221 10000 yarp
 ```
 Set YARP namespace
 ```shell
-$ yarp namespace /lucia_g
+yarp namespace /lucia_g
 ```
 ## ROS2 Packages install & build
 Install robot-localization
 ```bash
+sudo apt update
 sudo apt install ros-humble-robot-localization
 ```
+Clone & Build
 ```shell
-$ sudo apt update
-$ sudo apt install ros-humble-hardware-interface
-$ cd ~/ros2_ws/src  #Go to ros workspace
-$ git clone https://github.com/iHaruruki/lucia_controller.git #clone this package
-$ cd ~/ros2_ws
-$ colcon build --symlink-install
-$ source install/setup.bash
+cd ~/ros2_ws/src  #Go to ros workspace
+git clone https://github.com/iHaruruki/lucia_controller.git #clone this package
+cd ~/ros2_ws
+colcon build --symlink-install --packages-select lucia_controller
+source install/setup.bash
 ```
 
 ## 🛠️ Usage
-1. Power on Lucia and NUC21
+1. Power on Lucia and NUC 21
 2. Power on [Lucia-04-Green-01-Main]
 3. (Wi-Fi settings) Connect to [lucia-g-router]
 4. Release the emergency stop button
-5. Switch Lucia's mode to [Remote Movement] (`remote`モードに切り替える)
+5. Switch Lucia's mode to [Remote] (`remote`モードに切り替える)
 6. Launch ROS2 Node
 ```shell
 ros2 launch lucia_controller bringup.launch.py 
 ```
-To run with EKF enabled:
+If you want to use EKF, pelase run:
 ```shell
 ros2 launch lucia_controller bringup_ekf.launch.py
 ```
@@ -134,6 +138,7 @@ ros2 launch lucia_controller bringup_ekf.launch.py
 - **[iHaruruki](https://github.com/iHaruruki)** — Main author & maintainer
 
 ## 🔗 References
-- YARP: https://github.com/robotology/yarp
-- YCM: https://github.com/robotology/ycm
-- ROS 2 Humble: https://docs.ros.org/en/humble/
+- [YARP](https://github.com/robotology/yarp)
+- [YCM](https://github.com/robotology/ycm)
+- [ROS 2 Humble](https://docs.ros.org/en/humble/)
+- [robot localization](https://docs.ros.org/en/melodic/api/robot_localization/html/index.html)
