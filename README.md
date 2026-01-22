@@ -68,21 +68,16 @@ graph LR
     wheelodom -->|subscribe| ekf
     ekf -->|publish| odomfilt
     
-    %% YARP connections (controller_node)
-    controller -.->|YARP| yarp_cmd_out
-    yarp_cmd_out -.->|YARP connect| yarp_vehicle_cmd
-    yarp_vehicle_cmd -.->|YARP| lucia
-    lucia -.->|YARP| yarp_vehicle_enc
-    yarp_vehicle_enc -.->|YARP connect| yarp_enc_in
-    yarp_enc_in -.->|YARP| controller
+    %% YARP connections
+    controller -.->|write| yarp_cmd_out
+    yarp_cmd_out -.->|connect| yarp_vehicle_cmd
+    yarp_vehicle_cmd -.-> lucia
+    lucia -.-> yarp_vehicle_enc
+    yarp_vehicle_enc -.->|connect| yarp_enc_in
+    yarp_enc_in -.->|read| controller
     
-    %% YARP connections (controller_ekf_node)
-    controller_ekf -.->|YARP| yarp_cmd_out
-    yarp_enc_in -.->|YARP| controller_ekf
-    
-    %% TF publishing (optional)
-    controller -.->|TF| tf_odom["TF:  odom → base_footprint"]
-    controller_ekf -.->|TF (optional)| tf_wheel["TF: wheel_odom → base_link"]
+    controller_ekf -.->|write| yarp_cmd_out
+    yarp_enc_in -.->|read| controller_ekf
     
     style controller fill:#e1f5ff
     style controller_ekf fill:#e1f5ff
