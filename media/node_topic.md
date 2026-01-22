@@ -10,6 +10,6 @@ flowchart TB
     ekf_node -- publish --> odomfilt["/odometry/filtered<br>nav_msgs/Odometry"]
     controller -. write .-> yarp_cmd["YARP:  /robot_driver/command:o"]
     controller_ekf -. write .-> yarp_cmd
-    yarp_cmd -.-> hardware(["Lucia Robot Hardware"])
+    yarp_cmd -.-> hardware[["Hardware (Motor & Encoder)"]]
     hardware -.-> yarp_enc["YARP: /robot_driver/encoder:i"]
     yarp_enc -. read .-> controller & controller_ekf
