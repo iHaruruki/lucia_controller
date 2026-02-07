@@ -1,25 +1,4 @@
 # lucia_controller
-> An elegant bridge between Lucia robots, YARP, and ROS 2 🚀
-
-
-Table of Contents
-- Features
-- Nodes & Topics
-- Requirements
-- Quick Setup
-  - System dependencies
-  - YCM (YARP CMake Modules)
-  - YARP build & configuration
-  - ROS 2 package build
-- Usage
-- YARP network example
-- Troubleshooting
-- Contributing
-- License
-- Authors
-- References
-
----
 
 ## 🚀 Overview
 **lucia_controller** connects Lucia robot hardware to your ROS 2 ecosystem using YARP, featuring:
@@ -40,7 +19,7 @@ Table of Contents
   - `/joint_states` _(sensor_msgs/JointState)_
   - `/diagnostics`
 
-![Nodea & Topics](/media/node_motor.png)
+![Node & Topics](/media/node_motor.png)
 
 ## 📋 Requirements
 - **OS:** Ubuntu 22.04
