@@ -77,7 +77,7 @@ make -j8
 sudo make install
 sudo ldconfig
 ```
-> [!NOTE]
+> [!IMPORTANT]
 > Use a version older than `YARP-3.11`
 
 Verify YARP server
