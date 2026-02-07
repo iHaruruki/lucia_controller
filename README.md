@@ -32,11 +32,11 @@
 ### YRAP
 
 Install basic build tools
-```shell
+```bash
 sudo apt install build-essential git cmake cmake-curses-gui
 ```
 Install YCM (YARP CMake Modules) from source
-```shell
+```bash
 git clone https://github.com/robotology/ycm/
 cd ycm && mkdir build && cd build
 cmake ..
@@ -44,11 +44,11 @@ make
 sudo make install
 ```
 Additional dependencies
-```shell
+```bash
 sudo apt-get install -y build-essential git cmake cmake-curses-gui ycm-cmake-modules libeigen3-dev libace-dev libedit-dev libsqlite3-dev libtinyxml-dev qtbase5-dev qtdeclarative5-dev qtmultimedia5-dev qml-module-qtquick2 qml-module-qtquick-window2 qml-module-qtmultimedia qml-module-qtquick-dialogs qml-module-qtquick-controls qml-module-qt-labs-folderlistmodel qml-module-qt-labs-settings libqcustomplot-dev libgraphviz-dev libjpeg-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-libav
 ```
 Build and install YARP
-```shell
+```bash
 git clone -b yarp-3.11 https://github.com/robotology/yarp.git
 cd yarp && mkdir build && cd build
 cmake ..
@@ -60,14 +60,14 @@ sudo ldconfig
 > Use a version older than `YARP-3.11`
 
 Verify YARP server
-```shell
+```bash
 yarpserver
 # Press CTRL-C to stop
 # You should see "Ok. Ready!" if it started successfully.
 ```
 
 YARP network configuration example
-```shell
+```bash
 cd ~
 yarp conf
 cd ~/.config/yarp/
@@ -80,17 +80,17 @@ YARP network configuration example
 192.168.1.221 10000 yarp
 ```
 Set YARP namespace
-```shell
+```bash
 yarp namespace /lucia_g
 ```
 ## ROS2 Packages install & build
 Install robot-localization
-```bash
+```
 sudo apt update
 sudo apt install ros-humble-robot-localization
 ```
 Clone & Build
-```shell
+```bash
 cd ~/ros2_ws/src  #Go to ros workspace
 git clone https://github.com/iHaruruki/lucia_controller.git #clone this package
 cd ~/ros2_ws
@@ -105,11 +105,11 @@ source install/setup.bash
 4. Release the emergency stop button
 5. Switch Lucia's mode to [Remote] (`remote`モードに切り替える)
 6. Launch ROS2 Node
-```shell
+```bash
 ros2 launch lucia_controller bringup.launch.py 
 ```
 If you want to use EKF, pelase run:
-```shell
+```bash
 ros2 launch lucia_controller bringup_ekf.launch.py
 ```
 ## 📜 License
