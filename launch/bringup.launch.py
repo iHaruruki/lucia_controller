@@ -19,7 +19,7 @@ def generate_launch_description():
     # ekf_nodeを使う場合
     controller_path = os.path.join(lucia_controller_pkg, 'launch', 'controller.launch.py')
     urg_node2_path = os.path.join(urg_node2_pkg, 'launch', 'urg_node2_2lidar.launch.py')
-    dual_laser_merger_path = os.path.join(dual_laser_merger_pkg, 'launch', 'urg_node2_merger.launch.py')
+    dual_laser_merger_path = os.path.join(dual_laser_merger_pkg, 'launch', 'urg_node2_merger_multi_echo.launch.py') # Use multi echo
 
     # IncludeLaunchDescription オブジェクトを作成
     include_description = IncludeLaunchDescription(
