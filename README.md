@@ -79,7 +79,7 @@ yarp namespace /lucia_g
 Install robot-localization
 ```bash
 sudo apt update
-sudo apt install ros-${ROS_DISTRO}-nav-msgs ros-${ROS_DISTRO}-robot-localization 
+sudo apt install ros-${ROS_DISTRO}-nav-msgs ros-${ROS_DISTRO}-ros2-control ros-${ROS_DISTRO}-ros2-controllers ros-${ROS_DISTRO}-robot-localization 
 ```
 Clone & Build
 ```bash
@@ -114,4 +114,5 @@ ros2 launch lucia_controller bringup_ekf.launch.py
 - [YARP](https://github.com/robotology/yarp)
 - [YCM](https://github.com/robotology/ycm)
 - [ROS 2 Humble](https://docs.ros.org/en/humble/)
+- [ros2_control](https://control.ros.org/humble/index.html)
 - [robot localization](https://docs.ros.org/en/melodic/api/robot_localization/html/index.html)
