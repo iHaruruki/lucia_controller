@@ -19,7 +19,7 @@ constexpr double MAX_ANGULAR_Z = 0.8;
 // ループ周期 (秒)
 constexpr double LOOP_PERIOD = 0.05;
 
-// YARPポート（シンプルさ優先でグローバル）
+// YARP port
 yarp::os::BufferedPort<yarp::os::Bottle> g_cmd_port;
 yarp::os::BufferedPort<yarp::os::Bottle> g_enc_port;
 

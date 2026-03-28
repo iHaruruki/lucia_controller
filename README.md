@@ -77,9 +77,9 @@ yarp namespace /lucia_g
 ```
 ## ROS2 Packages install & build
 Install robot-localization
-```
+```bash
 sudo apt update
-sudo apt install ros-${ROS_DISTRO}-robot-localization
+sudo apt install ros-${ROS_DISTRO}-nav-msgs ros-${ROS_DISTRO}-robot-localization 
 ```
 Clone & Build
 ```bash
