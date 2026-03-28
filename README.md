@@ -2,31 +2,23 @@
 
 ## 🚀 Overview
 **lucia_controller** connects Lucia robot hardware to your ROS 2 ecosystem using YARP, featuring:
-- Effortless launch for hardware interfaces & sensor fusion (EKF)
-- Clean networking, reproducible builds
-- Modern, readable code
 
 ## 📦 Features
 - Seamless integration between YARP and ROS 2.
-- Launch files to bring up hardware interfaces and optional EKF.
-- Clear build and network configuration steps for reproducible setup.
+- Launch files to bring up hardware interfaces.
 
 ## 🧩 Nodes & Topics
 - `lucia_controller_node`: main hardware interface
-- **Example Topics:**
+- **Topics:**
   - `/cmd_vel` _(geometry_msgs/Twist)_
   - `/odom` _(nav_msgs/Odometry)_
-  - `/joint_states` _(sensor_msgs/JointState)_
-  - `/diagnostics`
 
 ![Node & Topics](/media/node_motor.png)
 
 ## 📋 Requirements
 - **OS:** Ubuntu 22.04
-- **Middleware:** ROS 2 Humble
-- **Build tools:** cmake, git, build-essential
-- **YARP:** recommended build from source
-- **Dev libraries:** see Quick Setup
+- **ROS version:** ROS 2 Humble
+- **YARP:** Use a version older than `YARP-3.11`
 
 ## Setup
 ### YRAP
@@ -87,7 +79,7 @@ yarp namespace /lucia_g
 Install robot-localization
 ```
 sudo apt update
-sudo apt install ros-humble-robot-localization
+sudo apt install ros-${ROS_DISTRO}-robot-localization
 ```
 Clone & Build
 ```bash
