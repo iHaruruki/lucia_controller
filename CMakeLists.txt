@@ -51,9 +51,17 @@ target_link_libraries(lucia_controller_node
   YARP::YARP_init
 )
 
+add_executable(lucia_minimal_controller_node src/minimal_controller.cpp)
+ament_target_dependencies(lucia_minimal_controller_node rclcpp geometry_msgs nav_msgs tf2 tf2_ros tf2_geometry_msgs)
+target_link_libraries(lucia_minimal_controller_node
+  YARP::YARP_os
+  YARP::YARP_init
+)
+
 install(TARGETS
   lucia_controller_node
   lucia_controller_ekf_node
+  lucia_minimal_controller_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
