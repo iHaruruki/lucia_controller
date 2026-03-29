@@ -11,6 +11,7 @@
 #include <thread>
 #include <chrono>
 #include <cmath>
+#include <string>
 
 class LuciaController : public rclcpp::Node
 {
@@ -196,8 +197,9 @@ private:
             
             RCLCPP_DEBUG(this->get_logger(), "| vx: %lf[m/s] | vy: %lf[m/s] | w: %lf[rad/s] | ta: %lf[rad] |", enc[0], enc[1], enc[2], enc[3]);
 
-            x_ += (enc[0] * std::cos(theta_) - enc[1] * std::sin(theta_)) * dt_;
-            y_ += (enc[0] * std::sin(theta_) + enc[1] * std::cos(theta_)) * dt_;
+            double theta_mid = theta_ + (enc[2] * dt_) / 2.0;
+            x_ += (enc[0] * std::cos(theta_mid) - enc[1] * std::sin(theta_mid)) * dt_;
+            y_ += (enc[0] * std::sin(theta_mid) + enc[1] * std::cos(theta_mid)) * dt_;
             theta_ += enc[2] * dt_;
 
             // Normalize theta to [-pi, pi]
@@ -277,7 +279,7 @@ private:
     
     rclcpp::Time last_callback_time_;
     bool is_first_callback_ = true;
-    double x_, y_, q_x_, q_y_, q_z_, q_w_, theta_, dt_;
+    double x_, y_, theta_, dt_;
 };
 
 int main(int argc, char * argv[])
