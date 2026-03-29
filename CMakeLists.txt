@@ -39,9 +39,13 @@ target_link_libraries(lucia_minimal_controller_node
   YARP::YARP_init
 )
 
+add_executable(lucia_trajectory_drawer_node src/trajectory_drawer.cpp)
+ament_target_dependencies(lucia_trajectory_drawer_node rclcpp geometry_msgs nav_msgs)
+
 install(TARGETS
   lucia_controller_node
   lucia_minimal_controller_node
+  lucia_trajectory_drawer_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
