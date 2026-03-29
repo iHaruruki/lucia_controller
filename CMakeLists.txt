@@ -37,13 +37,6 @@ include_directories(
   include
 )
 
-add_executable(lucia_controller_ekf_node src/controller_ekf.cpp)
-ament_target_dependencies(lucia_controller_ekf_node ${DEPENDENCIES})
-target_link_libraries(lucia_controller_ekf_node
-  YARP::YARP_os
-  YARP::YARP_init
-)
-
 add_executable(lucia_controller_node src/controller.cpp)
 ament_target_dependencies(lucia_controller_node ${DEPENDENCIES})
 target_link_libraries(lucia_controller_node
@@ -60,7 +53,6 @@ target_link_libraries(lucia_minimal_controller_node
 
 install(TARGETS
   lucia_controller_node
-  lucia_controller_ekf_node
   lucia_minimal_controller_node
   DESTINATION lib/${PROJECT_NAME}
 )
