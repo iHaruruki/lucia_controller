@@ -1,8 +1,9 @@
 #include <rclcpp/rclcpp.hpp>
 #include <geometry_msgs/msg/twist.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
+#include <geometry_msgs/msg/transform_stamped.hpp>
+#include <tf2_ros/transform_broadcaster.hpp>
 #include <nav_msgs/msg/odometry.hpp>
-#include <nav_msgs/msg/path.hpp>
 #include <tf2/LinearMath/Quaternion.hpp>
 #include <yarp/os/all.h>
 #include <mutex>
@@ -51,12 +52,16 @@ public:
 
         // Publisher
         odom_publisher_ = this->create_publisher<nav_msgs::msg::Odometry>("odom", qos_odom);
+        tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(this);
 
         // Subscriber
         velocity_subscriber_ = this->create_subscription<geometry_msgs::msg::Twist>(
             "/smoothed_cmd_vel", 
             rclcpp::QoS(rclcpp::KeepLast(10)).best_effort(), 
             std::bind(&LuciaController::velocity_callback, this, std::placeholders::_1));
+
+        // Initialize time
+        last_callback_time_ = this->get_clock()->now();
         
         // Timer (10ms = 100Hz)
         timer_ = this->create_wall_timer(
@@ -194,6 +199,9 @@ private:
             x_ += (enc[0] * std::cos(theta_) - enc[1] * std::sin(theta_)) * dt_;
             y_ += (enc[0] * std::sin(theta_) + enc[1] * std::cos(theta_)) * dt_;
             theta_ += enc[2] * dt_;
+
+            // Normalize theta to [-pi, pi]
+            theta_ = std::atan2(std::sin(theta_), std::cos(theta_));
             
             auto odom = nav_msgs::msg::Odometry();
             odom.header.stamp = this->get_clock()->now();
@@ -222,12 +230,42 @@ private:
             odom.twist.twist.angular.z = enc[2];
             
             odom_publisher_->publish(odom);
+
+            // Broadcast TF
+            //broadcast_transform(odom.header.stamp);
         }
+    }
+
+    void broadcast_transform(const rclcpp::Time& stamp)
+    {
+        geometry_msgs::msg::TransformStamped transform;
+        
+        // Header
+        transform.header.stamp = stamp;
+        transform.header.frame_id = "odom";
+        transform.child_frame_id = "base_footprint";
+        
+        // Translation
+        transform.transform.translation.x = x_;
+        transform.transform.translation.y = y_;
+        transform.transform.translation.z = 0.0;
+        
+        // Rotation (quaternion)
+        tf2::Quaternion q;
+        q.setRPY(0, 0, theta_);
+        transform.transform.rotation.x = q.x();
+        transform.transform.rotation.y = q.y();
+        transform.transform.rotation.z = q.z();
+        transform.transform.rotation.w = q.w();
+        
+        // Broadcast
+        tf_broadcaster_->sendTransform(transform);
     }
     
     // ROS2
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_publisher_;
     rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr velocity_subscriber_;
+    std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
     rclcpp::TimerBase::SharedPtr timer_;
     
     // YARP
@@ -239,7 +277,7 @@ private:
     
     rclcpp::Time last_callback_time_;
     bool is_first_callback_ = true;
-    double x_, y_, theta_, dt_;
+    double x_, y_, q_x_, q_y_, q_z_, q_w_, theta_, dt_;
 };
 
 int main(int argc, char * argv[])
