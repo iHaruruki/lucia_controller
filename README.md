@@ -90,7 +90,7 @@ colcon build --symlink-install --packages-select lucia_controller
 source install/setup.bash
 ```
 
-## 🛠️ Usage
+## 🎮 Usage
 1. Power on Lucia and NUC 21
 2. Power on [Lucia-04-Green-01-Main]
 3. (Wi-Fi settings) Connect to [lucia-g-router]
@@ -104,6 +104,13 @@ If you want to use EKF, pelase run:
 ```bash
 ros2 launch lucia_controller bringup_ekf.launch.py
 ```
+
+## 🛠️ Debug
+lucia_minimal_controller_node
+```bash
+ros2 run lucia_controller lucia_minimal_controller_node --ros-args --log-level debug
+```
+
 ## 📜 License
 
 ## 👤 Authors

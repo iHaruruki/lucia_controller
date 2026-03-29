@@ -48,7 +48,9 @@ public:
 
         odom_publisher_ = this->create_publisher<nav_msgs::msg::Odometry>("odom", qos_odom);
         velocity_subscriber_ = this->create_subscription<geometry_msgs::msg::Twist>(
-            "/cmd_vel_smoothed", 5, std::bind(&LuciaController::velocity_callback, this, std::placeholders::_1));
+            "/cmd_vel_smoothed", 
+            rclcpp::QoS(rclcpp::KeepLast(10)).best_effort(), 
+            std::bind(&LuciaController::velocity_callback, this, std::placeholders::_1));
         
         // Timer (10ms = 100Hz)
         timer_ = this->create_wall_timer(
@@ -91,6 +93,7 @@ private:
         // Read vehicle state
         yarp::os::Bottle* state_data = p_state.read(false);
         
+        RCLCPP_DEBUG(this->get_logger(), "| init: %d | servo: %d | mode: %d | emergency: %d |", state_data->get(0).asInt32(), state_data->get(1).asInt32(), state_data->get(2).asInt32(), state_data->get(3).asInt32());
         if (state_data == nullptr || state_data->size() < 4) {
             RCLCPP_DEBUG_ONCE(this->get_logger(), "State data not available");
             return false;
@@ -105,11 +108,10 @@ private:
         log_vehicle_state(init, servo, mode, emergency);
         
         // Check vehicle state conditions
-        bool init_ok, servo_on, mode_ok, emergency_ok;
-        if(init = 255) bool init_ok = true; // Initialization successful
-        if(servo = 2) bool servo_on = true; // Servo ON
-        if(mode = 2) bool mode_ok = true; // Client control mode
-        if(emergency == 1) bool emergency_ok = true; // Emergency stop OFF
+        bool init_ok = (init == 255);        // Initialization successful
+        bool servo_on = (servo == 2);        // Servo ON
+        bool mode_ok = (mode == 2);          // Client control mode
+        bool emergency_ok = (emergency == 1); // Emergency stop OFF
 
         return init_ok && servo_on && mode_ok && emergency_ok;
     }
@@ -167,6 +169,8 @@ private:
                 enc[i] = bt->get(i).asFloat64();
             }
             
+            RCLCPP_DEBUG(this->get_logger(), "| vx: %lf[m/s] | vy: %lf[m/s] | w: %lf[rad/s] | ta: %lf[rad] |", enc[0], enc[1], enc[2], enc[3]);
+
             const double dt = 0.010;  // 10ms (100Hz)
             x_ += enc[0] * dt;
             y_ += enc[1] * dt;
@@ -175,7 +179,7 @@ private:
             auto odom = nav_msgs::msg::Odometry();
             odom.header.stamp = this->get_clock()->now();
             odom.header.frame_id = "odom";
-            odom.child_frame_id = "base_link";
+            odom.child_frame_id = "base_footprint";
             
             // Pose (position and orientation)
             odom.pose.pose.position.x = x_;
