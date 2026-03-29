@@ -1,6 +1,9 @@
 #include <rclcpp/rclcpp.hpp>
 #include <geometry_msgs/msg/twist.hpp>
+#include <geometry_msgs/msg/pose_stamped.hpp>
 #include <nav_msgs/msg/odometry.hpp>
+#include <nav_msgs/msg/path.hpp>
+#include <tf2/LinearMath/Quaternion.hpp>
 #include <yarp/os/all.h>
 #include <mutex>
 #include <vector>
@@ -11,7 +14,7 @@
 class LuciaController : public rclcpp::Node
 {
 public:
-    LuciaController() : Node("lucia_controller"), x_(0.0), y_(0.0), theta_(0.0)
+    LuciaController() : Node("lucia_minimal_controller"), x_(0.0), y_(0.0), theta_(0.0), dt_(0.010)
     {
         // YARP network check
         yarp::os::Network yarp;
@@ -46,7 +49,10 @@ public:
         // QoS
         auto qos_odom = rclcpp::QoS(rclcpp::KeepLast(10)).best_effort();
 
+        // Publisher
         odom_publisher_ = this->create_publisher<nav_msgs::msg::Odometry>("odom", qos_odom);
+
+        // Subscriber
         velocity_subscriber_ = this->create_subscription<geometry_msgs::msg::Twist>(
             "/cmd_vel_smoothed", 
             rclcpp::QoS(rclcpp::KeepLast(10)).best_effort(), 
@@ -164,6 +170,20 @@ private:
         
         if (bt != nullptr && bt->size() == 4)
         {
+            // Get current time
+            rclcpp::Time current_time = this->get_clock()->now();
+
+            int64_t dt_ns = (current_time - last_callback_time_).nanoseconds();
+            dt_ = dt_ns * 1e-9;
+            last_callback_time_ = current_time;
+            
+            // dt check (5ms < dt < 15ms)
+            if (dt_ <= 0.0005 || dt_ > 0.015)
+            {
+                RCLCPP_WARN(this->get_logger(), "Abnormal dt: %lf seconds", dt_);
+                return;
+            }
+
             std::vector<double> enc(4);
             for (size_t i = 0; i < enc.size(); i++) {
                 enc[i] = bt->get(i).asFloat64();
@@ -171,26 +191,34 @@ private:
             
             RCLCPP_DEBUG(this->get_logger(), "| vx: %lf[m/s] | vy: %lf[m/s] | w: %lf[rad/s] | ta: %lf[rad] |", enc[0], enc[1], enc[2], enc[3]);
 
-            const double dt = 0.010;  // 10ms (100Hz)
-            x_ += enc[0] * dt;
-            y_ += enc[1] * dt;
-            theta_ += enc[2] * dt;
+            x_ += (enc[0] * std::cos(theta_) - enc[1] * std::sin(theta_)) * dt_;
+            y_ += (enc[0] * std::sin(theta_) + enc[1] * std::cos(theta_)) * dt_;
+            theta_ += enc[2] * dt_;
             
             auto odom = nav_msgs::msg::Odometry();
             odom.header.stamp = this->get_clock()->now();
             odom.header.frame_id = "odom";
             odom.child_frame_id = "base_footprint";
-            
-            // Pose (position and orientation)
+
+            // Position
             odom.pose.pose.position.x = x_;
             odom.pose.pose.position.y = y_;
             odom.pose.pose.position.z = 0.0;
-            odom.pose.pose.orientation.z = std::sin(theta_ / 2.0);
-            odom.pose.pose.orientation.w = std::cos(theta_ / 2.0);
+
+            // Orientation (quaternion)
+            tf2::Quaternion q;
+            q.setRPY(0, 0, theta_);
+            odom.pose.pose.orientation.x = q.x();
+            odom.pose.pose.orientation.y = q.y();
+            odom.pose.pose.orientation.z = q.z();
+            odom.pose.pose.orientation.w = q.w();
             
             // Twist (velocity)
             odom.twist.twist.linear.x = enc[0];
             odom.twist.twist.linear.y = enc[1];
+            odom.twist.twist.linear.z = 0.0;
+            odom.twist.twist.angular.x = 0.0;
+            odom.twist.twist.angular.y = 0.0;
             odom.twist.twist.angular.z = enc[2];
             
             odom_publisher_->publish(odom);
@@ -209,7 +237,9 @@ private:
     yarp::os::BufferedPort<yarp::os::Bottle> p_state;
     std::mutex yarp_mutex_;
     
-    double x_, y_, theta_;
+    rclcpp::Time last_callback_time_;
+    bool is_first_callback_ = true;
+    double x_, y_, theta_, dt_;
 };
 
 int main(int argc, char * argv[])

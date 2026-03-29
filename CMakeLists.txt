@@ -33,7 +33,7 @@ target_link_libraries(lucia_controller_node
 )
 
 add_executable(lucia_minimal_controller_node src/minimal_controller.cpp)
-ament_target_dependencies(lucia_minimal_controller_node rclcpp geometry_msgs nav_msgs)
+ament_target_dependencies(lucia_minimal_controller_node rclcpp geometry_msgs nav_msgs tf2)
 target_link_libraries(lucia_minimal_controller_node
   YARP::YARP_os
   YARP::YARP_init
