@@ -79,7 +79,7 @@ yarp namespace /lucia_g
 Install robot-localization
 ```bash
 sudo apt update
-sudo apt install ros-${ROS_DISTRO}-nav-msgs ros-${ROS_DISTRO}-ros2-control ros-${ROS_DISTRO}-ros2-controllers ros-${ROS_DISTRO}-robot-localization 
+sudo apt install ros-${ROS_DISTRO}-nav-msgs ros-${ROS_DISTRO}-nav2-bringup
 ```
 Clone & Build
 ```bash
@@ -99,10 +99,6 @@ source install/setup.bash
 6. Launch ROS2 Node
 ```bash
 ros2 launch lucia_controller bringup.launch.py 
-```
-If you want to use EKF, pelase run:
-```bash
-ros2 launch lucia_controller bringup_ekf.launch.py
 ```
 
 ## 🛠️ Debug

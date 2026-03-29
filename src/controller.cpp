@@ -54,7 +54,7 @@ public:
 
         // Subscriber
         velocity_subscriber_ = this->create_subscription<geometry_msgs::msg::Twist>(
-            "/cmd_vel_smoothed", 
+            "/smoothed_cmd_vel", 
             rclcpp::QoS(rclcpp::KeepLast(10)).best_effort(), 
             std::bind(&LuciaController::velocity_callback, this, std::placeholders::_1));
         
