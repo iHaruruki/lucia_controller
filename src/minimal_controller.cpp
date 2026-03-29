@@ -25,10 +25,10 @@ public:
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         
         // Open YARP ports
-        p_mode.open("/ros2/mode:o");
-        p_cmd.open("/ros2/command:o");
-        p_enc.open("/ros2/encoder:i");
-        p_state.open("/ros2/state:i");
+        p_mode.open("/ros2/mode:o"); //mode change of the vehicle system
+        p_cmd.open("/ros2/command:o"); //remote-control command input
+        p_enc.open("/ros2/encoder:i"); //encoder output of the vehicle system
+        p_state.open("/ros2/state:i"); //the state of vehicle system
         
         // Connect with error checking
         std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -48,7 +48,7 @@ public:
 
         odom_publisher_ = this->create_publisher<nav_msgs::msg::Odometry>("odom", qos_odom);
         velocity_subscriber_ = this->create_subscription<geometry_msgs::msg::Twist>(
-            "/cmd_vel", 5, std::bind(&LuciaController::velocity_callback, this, std::placeholders::_1));
+            "/cmd_vel_smoothed", 5, std::bind(&LuciaController::velocity_callback, this, std::placeholders::_1));
         
         // Timer (10ms = 100Hz)
         timer_ = this->create_wall_timer(
@@ -105,11 +105,12 @@ private:
         log_vehicle_state(init, servo, mode, emergency);
         
         // Check vehicle state conditions
-        bool init_ok = (init == 255);        // Initialization successful
-        bool servo_on = (servo == 2);        // Servo ON
-        bool mode_ok = (mode == 2);          // Client control mode
-        bool emergency_ok = (emergency == 1); // Emergency stop OFF
-        
+        bool init_ok, servo_on, mode_ok, emergency_ok;
+        if(init = 255) bool init_ok = true; // Initialization successful
+        if(servo = 2) bool servo_on = true; // Servo ON
+        if(mode = 2) bool mode_ok = true; // Client control mode
+        if(emergency == 1) bool emergency_ok = true; // Emergency stop OFF
+
         return init_ok && servo_on && mode_ok && emergency_ok;
     }
     
@@ -166,7 +167,6 @@ private:
                 enc[i] = bt->get(i).asFloat64();
             }
             
-            // Integrate velocity to calculate position
             const double dt = 0.010;  // 10ms (100Hz)
             x_ += enc[0] * dt;
             y_ += enc[1] * dt;
