@@ -13,10 +13,18 @@ class LuciaController : public rclcpp::Node
 public:
     LuciaController() : Node("lucia_controller"), x_(0.0), y_(0.0), theta_(0.0)
     {
+        // YARP network check
+        yarp::os::Network yarp;
+        if(!yarp.checkNetwork(1.0)){
+            RCLCPP_FATAL(get_logger(), "YARP network unavailable");
+            throw std::runtime_error("YARP network unavailable");
+        }
+
         // Initialize YARP network
         yarp::os::Network::init();
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         
+        // Open YARP ports
         p_mode.open("/ros2/mode:o");
         p_cmd.open("/ros2/command:o");
         p_enc.open("/ros2/encoder:i");
@@ -24,13 +32,16 @@ public:
         
         // Connect with error checking
         std::this_thread::sleep_for(std::chrono::seconds(1));
+        bool mode_connected = yarp::os::Network::connect("/ros2/mode:o", "/vehicleDriver/mode:i");
         bool cmd_connected = yarp::os::Network::connect("/ros2/command:o", "/vehicleDriver/remote:i");
         bool enc_connected = yarp::os::Network::connect("/vehicleDriver/encoder:o", "/ros2/encoder:i");
         bool state_connected = yarp::os::Network::connect("/vehicleDriver/state:o", "/ros2/state:i");
         
-        if (!cmd_connected || !enc_connected || !state_connected) {
-            RCLCPP_ERROR(this->get_logger(), "Warning: Failed to connect YARP ports");
+        if (!mode_connected || !cmd_connected || !enc_connected || !state_connected) {
+            RCLCPP_WARN(this->get_logger(), "WARN: Failed to connect YARP ports");
+            throw std::runtime_error("Failed to connect state port");
         }
+        RCLCPP_INFO(this->get_logger(), "All YARP ports connected successfully");
         
         // QoS
         auto qos_odom = rclcpp::QoS(rclcpp::KeepLast(10)).best_effort();
@@ -200,8 +211,15 @@ private:
 int main(int argc, char * argv[])
 {
     rclcpp::init(argc, argv);
-    auto node = std::make_shared<LuciaController>();
-    rclcpp::spin(node);
+    try {
+        auto node = std::make_shared<LuciaController>();
+        rclcpp::spin(node);
+    } catch (const std::exception& e) {
+        RCLCPP_FATAL(rclcpp::get_logger("lucia_controller"), 
+            "Node initialization failed: %s", e.what());
+        rclcpp::shutdown();
+        return 1;
+    }
     rclcpp::shutdown();
     return 0;
 }
