@@ -79,9 +79,6 @@ private:
     void update_odometry(const std::vector<double>& encoder_data);
     void broadcast_transform(const rclcpp::Time& stamp);
 
-    // Utility
-    void normalize_angle();
-
     // ROS2 publishers and subscribers
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_publisher_;
     rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr velocity_subscriber_;

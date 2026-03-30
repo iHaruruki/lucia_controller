@@ -251,7 +251,7 @@ void LuciaController::update_odometry(const std::vector<double>& encoder_data)
     y_ += (encoder_data[0] * std::sin(theta_mid) + encoder_data[1] * std::cos(theta_mid)) * dt_;
     theta_ += encoder_data[2] * dt_;
 
-    normalize_angle();
+    theta_ = std::atan2(std::sin(theta_), std::cos(theta_));
 
     // Create odometry message
     auto odom = nav_msgs::msg::Odometry();
@@ -307,11 +307,6 @@ void LuciaController::broadcast_transform(const rclcpp::Time& stamp)
 
     // Broadcast
     tf_broadcaster_->sendTransform(transform);
-}
-
-void LuciaController::normalize_angle()
-{
-    theta_ = std::atan2(std::sin(theta_), std::cos(theta_));
 }
 
 int main(int argc, char* argv[])
