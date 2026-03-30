@@ -106,6 +106,10 @@ lucia_minimal_controller_node
 ```bash
 ros2 run lucia_controller lucia_minimal_controller_node --ros-args --log-level debug
 ```
+lucia_velocity_smoother
+```bash
+ros2 run lucia_controller lucia_velocity_smoother_node --ros-args --log-level debug
+```
 
 ## 📜 License
 

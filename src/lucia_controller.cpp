@@ -75,7 +75,6 @@ void LuciaController::velocity_callback(const geometry_msgs::msg::Twist::SharedP
     if (!is_vehicle_ready()) {
         RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
             "Vehicle is not ready. Cannot send command.");
-        return;
     }
 
     std::vector<double> cmd = {msg->linear.x, msg->linear.y, msg->angular.z, 0.0};
