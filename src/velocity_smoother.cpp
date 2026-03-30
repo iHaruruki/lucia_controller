@@ -6,11 +6,11 @@ VelocitySmootherNode::VelocitySmootherNode()
     : rclcpp::Node("velocity_smoother_node")
 {
     // Declare parameters
-    this->declare_parameter<double>("smoothing_factor", 0.3);
+    this->declare_parameter<double>("smoothing_factor", 0.05); // 指数平滑化係数
     this->declare_parameter<double>("max_linear_vel", 0.4);
     this->declare_parameter<double>("max_angular_vel", 0.8);
-    this->declare_parameter<double>("max_linear_accel", 0.5);
-    this->declare_parameter<double>("max_angular_accel", 1.0);
+    this->declare_parameter<double>("max_linear_accel", 1.0);
+    this->declare_parameter<double>("max_angular_accel", 0.8);
     this->declare_parameter<double>("control_loop_rate", 50.0);
 
     // Get parameters
