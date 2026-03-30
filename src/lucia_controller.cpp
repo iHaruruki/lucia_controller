@@ -41,7 +41,7 @@ LuciaController::LuciaController()
     // Publisher
     odom_publisher_ = this->create_publisher<nav_msgs::msg::Odometry>(
         "odom",
-        rclcpp::QoS(rclcpp::KeepLast(50)).best_effort());
+        rclcpp::QoS(rclcpp::KeepLast(50)).reliable());
     tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(this);
 
     // Subscriber
