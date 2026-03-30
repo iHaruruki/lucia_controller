@@ -129,6 +129,13 @@ def generate_launch_description():
 
     ld.add_action(Node(
         package='lucia_controller',
+        executable='lucia_velocity_smoother_node',
+        name='lucia_velocity_smoother_node',
+        output='screen',
+    ))
+
+    ld.add_action(Node(
+        package='lucia_controller',
         executable='lucia_trajectory_drawer_node',
         name='lucia_trajectory_drawer_node',
         parameters=[{

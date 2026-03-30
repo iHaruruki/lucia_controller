@@ -16,6 +16,14 @@ def generate_launch_description():
             name='lucia_controller_node',
             output='screen',
         ),
+
+        # Velocity smoother
+        Node(
+            package='lucia_controller',
+            executable='lucia_velocity_smoother_node',
+            name='lucia_velocity_smoother_node',
+            output='screen',
+        ),
         
         # lucia_trajectory_drawer_node
         Node(
