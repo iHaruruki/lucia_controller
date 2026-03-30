@@ -40,10 +40,14 @@ target_link_libraries(lucia_minimal_controller_node
 add_executable(lucia_trajectory_drawer_node src/trajectory_drawer.cpp)
 ament_target_dependencies(lucia_trajectory_drawer_node rclcpp geometry_msgs nav_msgs)
 
+add_executable(lucia_velocity_smoother_node src/velocity_smoother.cpp)
+ament_target_dependencies(lucia_velocity_smoother_node rclcpp geometry_msgs nav_msgs)
+
 install(TARGETS
   lucia_controller_node
   lucia_minimal_controller_node
   lucia_trajectory_drawer_node
+  lucia_velocity_smoother_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
