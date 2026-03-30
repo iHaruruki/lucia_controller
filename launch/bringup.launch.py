@@ -20,6 +20,7 @@ def generate_launch_description():
     controller_path = os.path.join(lucia_controller_pkg, 'launch', 'controller.launch.py')
     urg_node2_path = os.path.join(urg_node2_pkg, 'launch', 'urg_node2_2lidar.launch.py')
     dual_laser_merger_path = os.path.join(dual_laser_merger_pkg, 'launch', 'urg_node2_merger_multi_echo.launch.py') # Use multi echo
+    twist_mux_path = os.path.join(lucia_controller_pkg, 'launch', 'twist_mux.launch.py')
 
     # IncludeLaunchDescription オブジェクトを作成
     include_description = IncludeLaunchDescription(
@@ -41,10 +42,15 @@ def generate_launch_description():
         launch_arguments={'use_sim_time': 'false'}.items()
     )
 
+    include_twist_mux = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(twist_mux_path)
+    )
+
     ld = LaunchDescription()
     ld.add_action(include_description)
     ld.add_action(include_controller)
     ld.add_action(include_urg_node2)
     ld.add_action(include_dual_laser_merger)
+    ld.add_action(include_twist_mux)
 
     return ld
