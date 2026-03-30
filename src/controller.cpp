@@ -16,7 +16,7 @@
 class LuciaController : public rclcpp::Node
 {
 public:
-    LuciaController() : Node("lucia_controller"), x_(0.0), y_(0.0), theta_(0.0), dt_(0.010)
+    LuciaController() : Node("lucia_controller"), x_(0.0), y_(0.0), theta_(0.0), dt_(0.020)
     {
         // YARP network check
         yarp::os::Network yarp;
@@ -49,10 +49,10 @@ public:
         RCLCPP_INFO(this->get_logger(), "All YARP ports connected successfully");
         
         // QoS
-        auto qos_odom = rclcpp::QoS(rclcpp::KeepLast(10)).best_effort();
+        //auto qos_odom = rclcpp::QoS(rclcpp::KeepLast(10)).best_effort();
 
         // Publisher
-        odom_publisher_ = this->create_publisher<nav_msgs::msg::Odometry>("odom", qos_odom);
+        odom_publisher_ = this->create_publisher<nav_msgs::msg::Odometry>("odom", rclcpp::QoS(rclcpp::KeepLast(50)).best_effort());
         tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(this);
 
         // Subscriber
@@ -64,9 +64,9 @@ public:
         // Initialize time
         last_callback_time_ = this->get_clock()->now();
         
-        // Timer (10ms = 100Hz)
+        // Timer (20ms = 50Hz)
         timer_ = this->create_wall_timer(
-            std::chrono::milliseconds(10),
+            std::chrono::milliseconds(20),
             std::bind(&LuciaController::timer_callback, this));
     }
     
@@ -183,10 +183,10 @@ private:
             dt_ = dt_ns * 1e-9;
             last_callback_time_ = current_time;
             
-            // dt check (5ms < dt < 15ms)
-            if (dt_ <= 0.0005 || dt_ > 0.015)
+            // dt check (15ms < dt < 25ms)
+            if (dt_ <= 0.015 || dt_ > 0.025)
             {
-                RCLCPP_WARN(this->get_logger(), "Abnormal dt: %lf seconds", dt_);
+                RCLCPP_DEBUG(this->get_logger(), "Abnormal dt: %lf seconds", dt_);
                 return;
             }
 
@@ -234,7 +234,7 @@ private:
             odom_publisher_->publish(odom);
 
             // Broadcast TF
-            //broadcast_transform(odom.header.stamp);
+            broadcast_transform(odom.header.stamp);
         }
     }
 

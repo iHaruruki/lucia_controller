@@ -19,7 +19,7 @@ public:
     std::string odom_topic = get_parameter("odom_topic").as_string();
 
     odom_sub_ = create_subscription<nav_msgs::msg::Odometry>(
-        odom_topic, 10, std::bind(&TrajectoryDrawer::odometryCallback, this, _1));
+        odom_topic, rclcpp::QoS(rclcpp::KeepLast(10)).best_effort(), std::bind(&TrajectoryDrawer::odometryCallback, this, _1));
     trajectory_pub_ = create_publisher<nav_msgs::msg::Path>("lucia_controller/trajectory", 10);
   }
 
