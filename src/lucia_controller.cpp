@@ -1,10 +1,13 @@
 #include "lucia_controller/lucia_controller.hpp"
+#include <cmath>
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 LuciaController::LuciaController()
     : Node("lucia_controller"),
       x_(0.0),
       y_(0.0),
-      theta_(0.0),
+      yaw_(0.0),
       dt_(VehicleStateConstants::DEFAULT_DT)
 {
     // Initialize YARP network
@@ -64,6 +67,7 @@ void LuciaController::velocity_callback(const geometry_msgs::msg::Twist::SharedP
 void LuciaController::send_velocity_command(const std::vector<double>& cmd)
 {
     if (cmd.size() != VehicleStateConstants::CMD_DATA_SIZE) {
+        RCLCPP_WARN(this->get_logger(), "Invalid command size: %zu", cmd.size());
         return;
     }
 
@@ -75,30 +79,9 @@ void LuciaController::send_velocity_command(const std::vector<double>& cmd)
     p_cmd.write();
 }
 
-std::vector<double> LuciaController::read_encoder_data()
-{
-    std::vector<double> enc(VehicleStateConstants::ENCODER_DATA_SIZE, 0.0);
-    yarp::os::Bottle* bt = p_enc.read(false);
-
-    if (bt == nullptr || bt->size() != VehicleStateConstants::ENCODER_DATA_SIZE) {
-        return enc;
-    }
-
-    for (size_t i = 0; i < VehicleStateConstants::ENCODER_DATA_SIZE; i++) {
-        enc[i] = bt->get(i).asFloat64();
-    }
-
-    return enc;
-}
-
 void LuciaController::encoder_timer_callback()
 {
     std::lock_guard<std::mutex> lock(yarp_mutex_);
-    std::vector<double> enc = read_encoder_data();
-
-    if (enc.empty()) {
-        return;
-    }
 
     rclcpp::Time current_time = this->get_clock()->now();
     int64_t dt_ns = (current_time - last_callback_time_).nanoseconds();
@@ -106,65 +89,127 @@ void LuciaController::encoder_timer_callback()
     last_callback_time_ = current_time;
 
     if (dt_ <= VehicleStateConstants::MIN_DT || dt_ > VehicleStateConstants::MAX_DT) {
-        RCLCPP_DEBUG(this->get_logger(), "Large time gap detected: %f s", dt_);
+        RCLCPP_DEBUG(this->get_logger(), "Time gap check failed: dt=%f", dt_);
         return;
     }
 
-    update_odometry(enc);
-    broadcast_transform();
+    readEncoderAndUpdate(dt_, current_time);
 }
 
-void LuciaController::update_odometry(const std::vector<double>& encoder_data)
+void LuciaController::readEncoderAndUpdate(double dt, const rclcpp::Time& stamp)
 {
-    x_ += encoder_data[0] * dt_;
-    y_ += encoder_data[1] * dt_;
-    theta_ += encoder_data[2] * dt_;
-    theta_ = std::atan2(std::sin(theta_), std::cos(theta_)); 
+    yarp::os::Bottle* bt = p_enc.read(false);
 
+    if (!bt) {
+        encoder_failure_count_++;
+        if (encoder_failure_count_ % 50 == 0) {
+            RCLCPP_DEBUG(this->get_logger(), "Encoder read failed (%d times)", encoder_failure_count_);
+        }
+        publishOdometry(stamp, 0.0, 0.0, 0.0);
+        return;
+    }
+
+    // Encoder size check
+    if (bt->size() < 3) {
+        encoder_error_count_++;
+        RCLCPP_DEBUG(this->get_logger(), "Encoder size too short: %ld (expected >= 3)", bt->size());
+        return;
+    }
+
+    // Get encoder values
+    double vx = bt->get(0).asFloat64();
+    double vy = bt->get(1).asFloat64();
+    double w = bt->get(2).asFloat64();
+    double ta = bt->get(2).asFloat64();
+
+    // NaN/Inf validation
+    if (std::isnan(vx) || std::isnan(vy) || std::isnan(w) ||
+        std::isinf(vx) || std::isinf(vy) || std::isinf(w)) {
+        encoder_error_count_++;
+        RCLCPP_WARN(this->get_logger(), "Invalid encoder value (NaN/Inf): vx=%f, vy=%f, vth=%f", vx, vy, w);
+        return;
+    }
+
+    // Debug log
+    count ++;
+    if(count % 10 == 0){
+        RCLCPP_INFO(this->get_logger(), "Encoder: vx=%f, vy=%f, w=%f, ta,=%f, dt=%f", vx, vy, w, ta, dt);
+    }
+
+    // Integrate odometry
+    integrate(vx, vy, w, dt);
+
+    // Publish odometry and broadcast transform
+    publishOdometry(stamp, vx, vy, w);
+}
+
+void LuciaController::integrate(double vx, double vy, double vth, double dt)
+{
+    x_ += (vx * std::cos(yaw_) - vy * std::sin(yaw_)) * dt;
+    y_ += (vx * std::sin(yaw_) + vy * std::cos(yaw_)) * dt;
+    yaw_ += vth * dt;
+
+    // Normalize angle to [-π, π]
+    if (yaw_ > M_PI) {
+        yaw_ -= 2 * M_PI;
+    }
+    if (yaw_ < -M_PI) {
+        yaw_ += 2 * M_PI;
+    }
+
+    RCLCPP_DEBUG(this->get_logger(), "Odometry: x=%f, y=%f, yaw=%f (rad, %.1f deg)", x_, y_, yaw_, yaw_ * 180.0 / M_PI);
+}
+
+void LuciaController::publishOdometry(const rclcpp::Time& stamp, double vx, double vy, double vth)
+{
+    // Create odometry message
     auto odom = nav_msgs::msg::Odometry();
-    odom.header.stamp = this->get_clock()->now();
+    odom.header.stamp = stamp;
     odom.header.frame_id = "odom";
     odom.child_frame_id = "base_footprint";
 
+    // Position
     odom.pose.pose.position.x = x_;
     odom.pose.pose.position.y = y_;
     odom.pose.pose.position.z = 0.0;
 
+    // Orientation
     tf2::Quaternion q;
-    q.setRPY(0, 0, theta_);
-    odom.pose.pose.orientation.x = q.x();
-    odom.pose.pose.orientation.y = q.y();
-    odom.pose.pose.orientation.z = q.z();
-    odom.pose.pose.orientation.w = q.w();
+    q.setRPY(0, 0, yaw_);
+    odom.pose.pose.orientation = tf2::toMsg(q);
 
-    odom.twist.twist.linear.x = encoder_data[0];
-    odom.twist.twist.linear.y = encoder_data[1];
+    // Covariance
+    for (int i = 0; i < 36; i++) {
+        odom.pose.covariance[i] = 0.0;
+        odom.twist.covariance[i] = 0.0;
+    }
+    odom.pose.covariance[0] = 0.01;   // x
+    odom.pose.covariance[7] = 0.01;   // y
+    odom.pose.covariance[35] = 0.02;  // theta
+    odom.twist.covariance[0] = 0.01;  // vx
+    odom.twist.covariance[7] = 0.01;  // vy
+    odom.twist.covariance[35] = 0.02; // w
+
+    // Velocity
+    odom.twist.twist.linear.x = vx;
+    odom.twist.twist.linear.y = vy;
     odom.twist.twist.linear.z = 0.0;
     odom.twist.twist.angular.x = 0.0;
     odom.twist.twist.angular.y = 0.0;
-    odom.twist.twist.angular.z = encoder_data[2];
+    odom.twist.twist.angular.z = vth;
 
     odom_publisher_->publish(odom);
-}
 
-void LuciaController::broadcast_transform()
-{
+    // Broadcast transform
     geometry_msgs::msg::TransformStamped transform;
-
-    transform.header.stamp = this->get_clock()->now();
+    transform.header.stamp = stamp;
     transform.header.frame_id = "odom";
     transform.child_frame_id = "base_footprint";
 
     transform.transform.translation.x = x_;
     transform.transform.translation.y = y_;
     transform.transform.translation.z = 0.0;
-
-    tf2::Quaternion q;
-    q.setRPY(0, 0, theta_);
-    transform.transform.rotation.x = q.x();
-    transform.transform.rotation.y = q.y();
-    transform.transform.rotation.z = q.z();
-    transform.transform.rotation.w = q.w();
+    transform.transform.rotation = odom.pose.pose.orientation;
 
     tf_broadcaster_->sendTransform(transform);
 }

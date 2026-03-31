@@ -24,7 +24,7 @@ include_directories(
 )
 
 add_executable(lucia_controller_node src/lucia_controller.cpp)
-ament_target_dependencies(lucia_controller_node rclcpp geometry_msgs nav_msgs tf2_ros)
+ament_target_dependencies(lucia_controller_node rclcpp geometry_msgs nav_msgs tf2_ros tf2_geometry_msgs)
 target_link_libraries(lucia_controller_node
   YARP::YARP_os
   YARP::YARP_init

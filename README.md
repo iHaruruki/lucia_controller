@@ -79,7 +79,7 @@ yarp namespace /lucia_g
 Install robot-localization
 ```bash
 sudo apt update
-sudo apt install ros-${ROS_DISTRO}-nav-msgs ros-${ROS_DISTRO}-nav2-bringup ros-${ROS_DISTRO}-tf2-ros
+sudo apt install ros-${ROS_DISTRO}-nav-msgs ros-${ROS_DISTRO}-nav2-bringup ros-${ROS_DISTRO}-tf2-ros ros-${ROS_DISTRO}-tf2-geometry-msgs
 ```
 Clone & Build
 ```bash
@@ -109,6 +109,10 @@ ros2 run lucia_controller lucia_minimal_controller_node --ros-args --log-level d
 lucia_velocity_smoother
 ```bash
 ros2 run lucia_controller lucia_velocity_smoother_node --ros-args --log-level debug
+```
+bringup.launch.py
+```bash
+ros2 launch lucia_controller bringup.launch.py log_level:=debug
 ```
 
 ## 📜 License
