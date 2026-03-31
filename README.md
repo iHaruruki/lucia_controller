@@ -13,7 +13,7 @@
   - `/cmd_vel` _(geometry_msgs/Twist)_
   - `/odom` _(nav_msgs/Odometry)_
 
-![Node & Topics](/media/node_motor.png)
+![Node & Topics](/manual/node_topic_conection/node_motor.png)
 
 ## 📋 Requirements
 - **OS:** Ubuntu 22.04
@@ -102,6 +102,11 @@ ros2 launch lucia_controller bringup.launch.py
 ```
 
 ## 🛠️ Debug
+## Debug mode
+bringup.launch.py
+```bash
+ros2 launch lucia_controller bringup.launch.py log_level:=debug
+```
 lucia_minimal_controller_node
 ```bash
 ros2 run lucia_controller lucia_minimal_controller_node --ros-args --log-level debug
@@ -109,10 +114,6 @@ ros2 run lucia_controller lucia_minimal_controller_node --ros-args --log-level d
 lucia_velocity_smoother
 ```bash
 ros2 run lucia_controller lucia_velocity_smoother_node --ros-args --log-level debug
-```
-bringup.launch.py
-```bash
-ros2 launch lucia_controller bringup.launch.py log_level:=debug
 ```
 
 ## 📜 License
