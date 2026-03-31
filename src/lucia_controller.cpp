@@ -53,10 +53,15 @@ LuciaController::LuciaController()
     // Initialize time
     last_callback_time_ = this->get_clock()->now();
 
-    // Timer (20ms = 50Hz)
-    timer_ = this->create_wall_timer(
+    // Encoder imer
+    encoder_timer_ = this->create_wall_timer(
         std::chrono::milliseconds(20),
-        std::bind(&LuciaController::timer_callback, this));
+        std::bind(&LuciaController::encoder_timer_callback, this));
+
+    // Vehicle_state timer
+    // vehicle_state_timer_ = this->create_wall_timer(
+    //     std::chrono::seconds(1),
+    //     std::bind(&LuciaController::velocity_callback, this));
 }
 
 LuciaController::~LuciaController()
@@ -217,7 +222,7 @@ std::string LuciaController::get_emergency_status_string(int emergency)
     return "ON (Emergency)";
 }
 
-void LuciaController::timer_callback()
+void LuciaController::encoder_timer_callback()
 {
     std::lock_guard<std::mutex> lock(yarp_mutex_);
     std::vector<double> enc = read_encoder_data();

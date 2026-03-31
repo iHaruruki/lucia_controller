@@ -60,7 +60,7 @@ public:
 private:
     // ROS2 callbacks
     void velocity_callback(const geometry_msgs::msg::Twist::SharedPtr msg);
-    void timer_callback();
+    void encoder_timer_callback();
 
     // YARP communication
     void send_velocity_command(const std::vector<double>& cmd);
@@ -83,7 +83,11 @@ private:
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_publisher_;
     rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr velocity_subscriber_;
     std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
-    rclcpp::TimerBase::SharedPtr timer_;
+
+    rclcpp::TimerBase::SharedPtr encoder_timer_;
+    rclcpp::TimerBase::SharedPtr vehicle_state_timer_;  // timer for vehicle state
+    //VehicleState cached_vehicle_state_;         // Cache the state
+    std::mutex state_mutex_;                    // Protect state access
 
     // YARP ports
     yarp::os::BufferedPort<yarp::os::Bottle> p_mode;
