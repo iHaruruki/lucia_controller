@@ -133,7 +133,7 @@ void LuciaController::readEncoderAndUpdate(double dt, const rclcpp::Time& stamp)
     // Debug log
     count ++;
     if(count % 10 == 0){
-        RCLCPP_INFO(this->get_logger(), "Encoder: vx=%f, vy=%f, w=%f, ta,=%f, dt=%f", vx, vy, w, ta, dt);
+        RCLCPP_DEBUG(this->get_logger(), "Encoder: vx=%f, vy=%f, w=%f, ta,=%f, dt=%f", vx, vy, w, ta, dt);
     }
 
     // Integrate odometry
