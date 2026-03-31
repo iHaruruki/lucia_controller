@@ -68,16 +68,9 @@ private:
     VehicleState read_vehicle_state();
     std::vector<double> read_encoder_data();
 
-    // Vehicle state management
-    void log_vehicle_state(const VehicleState& state);
-    std::string get_init_status_string(int init);
-    std::string get_servo_status_string(int servo);
-    std::string get_mode_status_string(int mode);
-    std::string get_emergency_status_string(int emergency);
-
     // Odometry and transform
     void update_odometry(const std::vector<double>& encoder_data);
-    void broadcast_transform(const rclcpp::Time& stamp);
+    void broadcast_transform();
 
     // ROS2 publishers and subscribers
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_publisher_;
@@ -86,14 +79,10 @@ private:
 
     rclcpp::TimerBase::SharedPtr encoder_timer_;
     rclcpp::TimerBase::SharedPtr vehicle_state_timer_;  // timer for vehicle state
-    //VehicleState cached_vehicle_state_;         // Cache the state
-    std::mutex state_mutex_;                    // Protect state access
 
     // YARP ports
-    yarp::os::BufferedPort<yarp::os::Bottle> p_mode;
     yarp::os::BufferedPort<yarp::os::Bottle> p_cmd;
     yarp::os::BufferedPort<yarp::os::Bottle> p_enc;
-    yarp::os::BufferedPort<yarp::os::Bottle> p_state;
     std::mutex yarp_mutex_;
 
     // Odometry state
@@ -103,6 +92,5 @@ private:
     double dt_;
     rclcpp::Time last_callback_time_;
 
-    // Vehicle state tracking
-    VehicleState previous_state_;
+    std::atomic<bool> is_shutting_down_{false};
 };
