@@ -18,6 +18,7 @@ find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(YARP REQUIRED)
+find_package(message_filters REQUIRED)
 
 include_directories(
   include
@@ -41,7 +42,7 @@ add_executable(lucia_trajectory_drawer_node src/trajectory_drawer.cpp)
 ament_target_dependencies(lucia_trajectory_drawer_node rclcpp geometry_msgs nav_msgs)
 
 add_executable(lucia_velocity_smoother_node src/velocity_smoother.cpp)
-ament_target_dependencies(lucia_velocity_smoother_node rclcpp geometry_msgs nav_msgs)
+ament_target_dependencies(lucia_velocity_smoother_node rclcpp geometry_msgs nav_msgs message_filters)
 
 install(TARGETS
   lucia_controller_node

@@ -1,210 +1,289 @@
-#include "lucia_controller/velocity_smoother.hpp"
-#include <algorithm>
+#include <rclcpp/rclcpp.hpp>
+#include <geometry_msgs/msg/twist.hpp>
+#include <nav_msgs/msg/odometry.hpp>
+#include <message_filters/subscriber.h>
+#include <message_filters/synchronizer.h>
+#include <message_filters/sync_policies/approximate_time.h>
 #include <cmath>
+#include <chrono>
 
-VelocitySmootherNode::VelocitySmootherNode()
-    : rclcpp::Node("velocity_smoother_node")
+// モジュール化されたPIDコントローラクラス
+class PIDController
 {
-    // Declare parameters
-    this->declare_parameter<double>("smoothing_factor", 0.05); // 指数平滑化係数
-    this->declare_parameter<double>("max_linear_vel", 0.4);
-    this->declare_parameter<double>("max_angular_vel", 0.8);
-    this->declare_parameter<double>("max_linear_accel", 1.0);
-    this->declare_parameter<double>("max_angular_accel", 0.8);
-    this->declare_parameter<double>("control_loop_rate", 50.0);
+public:
+    PIDController(double kp, double ki, double kd)
+        : kp_(kp), ki_(ki), kd_(kd),
+          integral_(0.0), prev_error_(0.0),
+          integral_limit_(1.0)
+    {
+    }
 
-    // Get parameters
-    this->get_parameter("smoothing_factor", smoothing_factor_);
-    this->get_parameter("max_linear_vel", max_linear_vel_);
-    this->get_parameter("max_angular_vel", max_angular_vel_);
-    this->get_parameter("max_linear_accel", max_linear_accel_);
-    this->get_parameter("max_angular_accel", max_angular_accel_);
-    this->get_parameter("control_loop_rate", control_loop_rate_);
+    void updateGains(double kp, double ki, double kd)
+    {
+        kp_ = kp;
+        ki_ = ki;
+        kd_ = kd;
+    }
 
-    // Clamp smoothing factor
-    smoothing_factor_ = clamp(smoothing_factor_, 0.0, 1.0);
+    double p_control(double error)
+    {
+        return kp_ * error;
+    }
 
-    RCLCPP_DEBUG(this->get_logger(), "Velocity Smoother Node initialized");
-    RCLCPP_DEBUG(this->get_logger(), "  Smoothing factor: %.3f", smoothing_factor_);
-    RCLCPP_DEBUG(this->get_logger(), "  Max linear vel: %.3f m/s", max_linear_vel_);
-    RCLCPP_DEBUG(this->get_logger(), "  Max angular vel: %.3f rad/s", max_angular_vel_);
-    RCLCPP_DEBUG(this->get_logger(), "  Max linear accel: %.3f m/s²", max_linear_accel_);
-    RCLCPP_DEBUG(this->get_logger(), "  Max angular accel: %.3f rad/s²", max_angular_accel_);
-    RCLCPP_DEBUG(this->get_logger(), "  Control loop rate: %.1f Hz", control_loop_rate_);
+    double i_control(double error, double dt)
+    {
+        integral_ += error * dt;
+        integral_ = std::clamp(integral_, -integral_limit_, integral_limit_);
+        return ki_ * integral_;
+    }
 
-    cmd_vel_sub_ = this->create_subscription<geometry_msgs::msg::Twist>(
-        "cmd_vel",
-        10,
-        std::bind(&VelocitySmootherNode::cmd_vel_callback, this, std::placeholders::_1));
+    double d_control(double error, double dt)
+    {
+        if (dt <= 0.0) return 0.0;
 
-    odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
-        "odom",
-        10,
-        std::bind(&VelocitySmootherNode::odom_callback, this, std::placeholders::_1));
+        double derivative = (error - prev_error_) / dt;
+        prev_error_ = error;
+        return kd_ * derivative;
+    }
 
-    // Create publisher
-    smoothed_cmd_vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>(
-        "smoothed_cmd_vel", 10);
+    double update(double error, double dt)
+    {
+        double p_term = p_control(error);
+        double i_term = i_control(error, dt);
+        double d_term = d_control(error, dt);
+        return p_term + i_term + d_term;
+    }
 
-    // Initialize velocity messages
-    current_cmd_vel_.linear.x = 0.0;
-    current_cmd_vel_.linear.y = 0.0;
-    current_cmd_vel_.linear.z = 0.0;
-    current_cmd_vel_.angular.x = 0.0;
-    current_cmd_vel_.angular.y = 0.0;
-    current_cmd_vel_.angular.z = 0.0;
+    void reset()
+    {
+        integral_ = 0.0;
+        prev_error_ = 0.0;
+    }
 
-    smoothed_vel_ = current_cmd_vel_;
-    actual_vel_ = current_cmd_vel_;
+private:
+    double kp_, ki_, kd_;
+    double integral_;
+    double prev_error_;
+    double integral_limit_;
+};
 
-    // Create timer for control loop
-    auto timer_period = std::chrono::milliseconds(
-        static_cast<int>(1000.0 / control_loop_rate_));
-    timer_ = this->create_wall_timer(
-        timer_period,
-        std::bind(&VelocitySmootherNode::timer_callback, this));
-
-    RCLCPP_INFO(this->get_logger(), "Velocity Smoother Node ready");
-}
-
-VelocitySmootherNode::~VelocitySmootherNode()
+class SpeedSmoothingNode : public rclcpp::Node
 {
-    RCLCPP_INFO(this->get_logger(), "Velocity Smoother Node shutting down");
-}
+public:
+    SpeedSmoothingNode() : Node("speed_smoothing_node"),
+                           linear_pid_(1.0, 0.1, 0.1),
+                           angular_pid_(0.8, 0.05, 0.08),
+                           update_period_ms_(20),
+                           last_update_time_initialized_(false),
+                           current_linear_vel_(0.0),
+                           current_angular_vel_(0.0),
+                           target_linear_vel_(0.0),
+                           target_angular_vel_(0.0),
+                           max_linear_vel_(0.4),
+                           max_angular_vel_(0.8)
+    {
+        // Declare ROS parameters
+        this->declare_parameter<double>("max_linear_vel", 0.4);
+        this->declare_parameter<double>("max_angular_vel", 0.8);
 
-void VelocitySmootherNode::cmd_vel_callback(
-    const geometry_msgs::msg::Twist::SharedPtr msg)
-{
-    std::lock_guard<std::mutex> lock(vel_mutex_);
+        this->declare_parameter<double>("pid_kp_linear", 1.0);
+        this->declare_parameter<double>("pid_ki_linear", 0.1);
+        this->declare_parameter<double>("pid_kd_linear", 0.1);
 
-    // Clamp input velocities to max limits
-    current_cmd_vel_.linear.x = clamp(msg->linear.x, -max_linear_vel_, max_linear_vel_);
-    current_cmd_vel_.linear.y = clamp(msg->linear.y, -max_linear_vel_, max_linear_vel_);
-    current_cmd_vel_.linear.z = clamp(msg->linear.z, -max_linear_vel_, max_linear_vel_);
+        this->declare_parameter<double>("pid_kp_angular", 0.8);
+        this->declare_parameter<double>("pid_ki_angular", 0.05);
+        this->declare_parameter<double>("pid_kd_angular", 0.08);
 
-    current_cmd_vel_.angular.x = clamp(msg->angular.x, -max_angular_vel_, max_angular_vel_);
-    current_cmd_vel_.angular.y = clamp(msg->angular.y, -max_angular_vel_, max_angular_vel_);
-    current_cmd_vel_.angular.z = clamp(msg->angular.z, -max_angular_vel_, max_angular_vel_);
-}
+        this->declare_parameter<int>("update_frequency", 50);
+        this->declare_parameter<int>("message_queue_size", 10);
+        this->declare_parameter<double>("sync_tolerance", 0.1);
 
-void VelocitySmootherNode::odom_callback(
-    const nav_msgs::msg::Odometry::SharedPtr msg)
-{
-    std::lock_guard<std::mutex> lock(odom_mutex_);
-    actual_vel_ = msg->twist.twist;
-}
+        // Get parameters
+        this->get_parameter("max_linear_vel", max_linear_vel_);
+        this->get_parameter("max_angular_vel", max_angular_vel_);
 
-void VelocitySmootherNode::timer_callback()
-{
-    std::lock_guard<std::mutex> vel_lock(vel_mutex_);
-    std::lock_guard<std::mutex> odom_lock(odom_mutex_);
+        double kp_linear, ki_linear, kd_linear;
+        double kp_angular, ki_angular, kd_angular;
+        int update_frequency;
+        int message_queue_size;
 
-    double dt = 1.0 / control_loop_rate_;
+        this->get_parameter("pid_kp_linear", kp_linear);
+        this->get_parameter("pid_ki_linear", ki_linear);
+        this->get_parameter("pid_kd_linear", kd_linear);
 
-    // Apply smoothing to linear velocities
-    smoothed_vel_.linear.x = apply_acceleration_limit(
-        smoothed_vel_.linear.x,
-        current_cmd_vel_.linear.x,
-        max_linear_accel_,
-        dt);
+        this->get_parameter("pid_kp_angular", kp_angular);
+        this->get_parameter("pid_ki_angular", ki_angular);
+        this->get_parameter("pid_kd_angular", kd_angular);
 
-    smoothed_vel_.linear.y = apply_acceleration_limit(
-        smoothed_vel_.linear.y,
-        current_cmd_vel_.linear.y,
-        max_linear_accel_,
-        dt);
+        this->get_parameter("update_frequency", update_frequency);
+        this->get_parameter("message_queue_size", message_queue_size);
 
-    smoothed_vel_.linear.z = apply_acceleration_limit(
-        smoothed_vel_.linear.z,
-        current_cmd_vel_.linear.z,
-        max_linear_accel_,
-        dt);
+        // Initialize PID controllers with parameters
+        linear_pid_.updateGains(kp_linear, ki_linear, kd_linear);
+        angular_pid_.updateGains(kp_angular, ki_angular, kd_angular);
 
-    // Apply smoothing to angular velocities
-    smoothed_vel_.angular.x = apply_acceleration_limit(
-        smoothed_vel_.angular.x,
-        current_cmd_vel_.angular.x,
-        max_angular_accel_,
-        dt);
+        // Calculate update period in milliseconds
+        update_period_ms_ = std::max(1, 1000 / update_frequency);
 
-    smoothed_vel_.angular.y = apply_acceleration_limit(
-        smoothed_vel_.angular.y,
-        current_cmd_vel_.angular.y,
-        max_angular_accel_,
-        dt);
+        RCLCPP_INFO(this->get_logger(), "Update frequency: %d Hz (period: %d ms)",
+                    update_frequency, update_period_ms_);
 
-    smoothed_vel_.angular.z = apply_acceleration_limit(
-        smoothed_vel_.angular.z,
-        current_cmd_vel_.angular.z,
-        max_angular_accel_,
-        dt);
+        // Create message filter subscribers
+        cmd_vel_sub_.subscribe(this, "cmd_vel", rmw_qos_profile_sensor_data);
+        odom_sub_.subscribe(this, "odom", rmw_qos_profile_sensor_data);
 
-    // Apply exponential smoothing filter
-    smoothed_vel_.linear.x = apply_smoothing(
-        smoothed_vel_.linear.x,
-        current_cmd_vel_.linear.x,
-        smoothing_factor_);
-    smoothed_vel_.linear.y = apply_smoothing(
-        smoothed_vel_.linear.y,
-        current_cmd_vel_.linear.y,
-        smoothing_factor_);
-    smoothed_vel_.linear.z = apply_smoothing(
-        smoothed_vel_.linear.z,
-        current_cmd_vel_.linear.z,
-        smoothing_factor_);
+        // Create synchronizer with ApproximateTime policy
+        typedef message_filters::sync_policies::ApproximateTime<
+            geometry_msgs::msg::Twist, nav_msgs::msg::Odometry>
+            SyncPolicy;
 
-    smoothed_vel_.angular.x = apply_smoothing(
-        smoothed_vel_.angular.x,
-        current_cmd_vel_.angular.x,
-        smoothing_factor_);
-    smoothed_vel_.angular.y = apply_smoothing(
-        smoothed_vel_.angular.y,
-        current_cmd_vel_.angular.y,
-        smoothing_factor_);
-    smoothed_vel_.angular.z = apply_smoothing(
-        smoothed_vel_.angular.z,
-        current_cmd_vel_.angular.z,
-        smoothing_factor_);
+        sync_ = std::make_unique<message_filters::Synchronizer<SyncPolicy>>(
+            SyncPolicy(message_queue_size), cmd_vel_sub_, odom_sub_);
 
-    // Publish smoothed velocity
-    smoothed_cmd_vel_pub_->publish(smoothed_vel_);
-}
+        // registerCallback の正しい使用法
+        sync_->registerCallback(std::bind(&SpeedSmoothingNode::syncCallback, this,
+                                         std::placeholders::_1, std::placeholders::_2));
 
-double VelocitySmootherNode::apply_smoothing(
-    double current, double target, double smoothing_factor)
-{
-    // Exponential smoothing: y = α * target + (1 - α) * current
-    // Higher α → faster response to target changes
-    return smoothing_factor * target + (1.0 - smoothing_factor) * current;
-}
+        RCLCPP_INFO(this->get_logger(),
+                    "Message synchronizer initialized (queue size: %d)",
+                    message_queue_size);
 
-double VelocitySmootherNode::clamp(
-    double value, double min, double max)
-{
-    return std::max(min, std::min(value, max));
-}
+        // Create publisher for smoothed commands
+        smoothed_cmd_vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>(
+            "smoothed_cmd_vel", 10);
 
-double VelocitySmootherNode::apply_acceleration_limit(
-    double current_vel, double target_vel, double max_accel, double dt)
-{
-    // Calculate maximum velocity change allowed in this time step
-    double max_change = max_accel * dt;
+        // Create timer for periodic updates
+        timer_ = this->create_wall_timer(
+            std::chrono::milliseconds(update_period_ms_),
+            std::bind(&SpeedSmoothingNode::timerCallback, this));
 
-    // Calculate desired change
-    double desired_change = target_vel - current_vel;
+        RCLCPP_INFO(this->get_logger(),
+                    "Speed Smoothing Node initialized successfully");
+        RCLCPP_INFO(this->get_logger(),
+                    "Max velocities - Linear: %.2f m/s, Angular: %.2f rad/s",
+                    max_linear_vel_, max_angular_vel_);
+    }
 
-    // Clamp desired change to acceleration limit
-    double limited_change = clamp(desired_change, -max_change, max_change);
+private:
+    // PID Controllers
+    PIDController linear_pid_;
+    PIDController angular_pid_;
 
-    // Return new velocity
-    return current_vel + limited_change;
-}
+    rclcpp::Time last_update_time_;
+    int update_period_ms_;
+    bool last_update_time_initialized_;
 
-int main(int argc, char * argv[])
+    // State variables
+    double current_linear_vel_;
+    double current_angular_vel_;
+    double target_linear_vel_;
+    double target_angular_vel_;
+
+    // Parameters
+    double max_linear_vel_;
+    double max_angular_vel_;
+
+    // Message filters
+    message_filters::Subscriber<geometry_msgs::msg::Twist> cmd_vel_sub_;
+    message_filters::Subscriber<nav_msgs::msg::Odometry> odom_sub_;
+    typedef message_filters::sync_policies::ApproximateTime<
+        geometry_msgs::msg::Twist, nav_msgs::msg::Odometry>
+        SyncPolicy;
+    std::unique_ptr<message_filters::Synchronizer<SyncPolicy>> sync_;
+
+    // ROS interface
+    rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr smoothed_cmd_vel_pub_;
+    rclcpp::TimerBase::SharedPtr timer_;
+
+    // 同期コールバック
+    void syncCallback(const geometry_msgs::msg::Twist::ConstSharedPtr &cmd_vel_msg,
+                      const nav_msgs::msg::Odometry::ConstSharedPtr &odom_msg)
+    {
+        // Update target velocities from command
+        target_linear_vel_ = cmd_vel_msg->linear.x;
+        target_angular_vel_ = cmd_vel_msg->angular.z;
+
+        // Clamp to max velocities
+        target_linear_vel_ = std::clamp(target_linear_vel_, -max_linear_vel_, max_linear_vel_);
+        target_angular_vel_ = std::clamp(target_angular_vel_, -max_angular_vel_, max_angular_vel_);
+
+        // Update current velocities from odometry
+        current_linear_vel_ = odom_msg->twist.twist.linear.x;
+        current_angular_vel_ = odom_msg->twist.twist.angular.z;
+
+        RCLCPP_DEBUG(this->get_logger(),
+                     "Synchronized: target_linear=%.3f, current_linear=%.3f, "
+                     "target_angular=%.3f, current_angular=%.3f",
+                     target_linear_vel_, current_linear_vel_,
+                     target_angular_vel_, current_angular_vel_);
+    }
+
+    // タイマーコールバック
+    void timerCallback()
+    {
+        // 前回の更新からの経過時間を計算
+        rclcpp::Time current_time = this->get_clock()->now();
+        // rclcpp::Duration elapsed = current_time - last_update_time_;
+        // double dt = elapsed.seconds();
+        
+        double dt = static_cast<double>(update_period_ms_) / 1000.0;
+
+        // 初回実行時は last_update_time_ を初期化
+        if (!last_update_time_initialized_)
+        {
+            last_update_time_ = current_time;
+            last_update_time_initialized_ = true;
+            RCLCPP_DEBUG(this->get_logger(), "First timer callback, initializing last_update_time");
+            return;
+        }
+
+        // 経過時間を計算
+        rclcpp::Duration elapsed = current_time - last_update_time_;
+        dt = elapsed.seconds();
+        
+        // dt が異常に大きい場合は設定値を使用
+        if (dt > 1.0 || dt <= 0.0)
+        {
+            dt = static_cast<double>(update_period_ms_) / 1000.0;
+        }
+
+        last_update_time_ = current_time;
+
+        // エラーを計算
+        auto [error_linear, error_angular] = errorCalculation();
+
+        // PIDコントロールを適用
+        double smoothed_linear = linear_pid_.update(error_linear, dt);
+        double smoothed_angular = angular_pid_.update(error_angular, dt);
+
+        // 最終出力をクランプ
+        smoothed_linear = std::clamp(smoothed_linear, -max_linear_vel_, max_linear_vel_);
+        smoothed_angular = std::clamp(smoothed_angular, -max_angular_vel_, max_angular_vel_);
+
+        // 平滑化されたコマンドを発行
+        geometry_msgs::msg::Twist smoothed_msg;
+        smoothed_msg.linear.x = smoothed_linear;
+        smoothed_msg.angular.z = smoothed_angular;
+        smoothed_cmd_vel_pub_->publish(smoothed_msg);
+
+        RCLCPP_DEBUG(this->get_logger(),
+                     "Timer update (dt=%.4f s): smoothed_linear=%.3f, smoothed_angular=%.3f",
+                     dt, smoothed_linear, smoothed_angular);
+    }
+
+    // エラー計算
+    std::pair<double, double> errorCalculation()
+    {
+        double linear_error = target_linear_vel_ - current_linear_vel_;
+        double angular_error = target_angular_vel_ - current_angular_vel_;
+        return std::make_pair(linear_error, angular_error);
+    }
+};
+
+int main(int argc, char *argv[])
 {
     rclcpp::init(argc, argv);
-    auto node = std::make_shared<VelocitySmootherNode>();
-    rclcpp::spin(node);
+    rclcpp::spin(std::make_shared<SpeedSmoothingNode>());
     rclcpp::shutdown();
     return 0;
 }

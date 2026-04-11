@@ -1,224 +1,239 @@
-#include "lucia_controller/lucia_controller.hpp"
+#include <rclcpp/rclcpp.hpp>
+#include <geometry_msgs/msg/twist.hpp>
+#include <nav_msgs/msg/odometry.hpp>
 #include <cmath>
-#include <tf2/LinearMath/Quaternion.h>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+#include <chrono>
+#include <algorithm>
+#include <utility>
 
-LuciaController::LuciaController()
-    : Node("lucia_controller"),
-      x_(0.0),
-      y_(0.0),
-      yaw_(0.0),
-      dt_(VehicleStateConstants::DEFAULT_DT)
+class PIDController
 {
-    // Initialize YARP network
-    yarp::os::Network::init();
-
-    // Open YARP ports
-    p_cmd.open("/ros2/command:o");
-    p_enc.open("/ros2/encoder:i");
-
-    // Connect ports
-    bool cmd_connected = yarp::os::Network::connect("/ros2/command:o", "/vehicleDriver/remote:i");
-    bool enc_connected = yarp::os::Network::connect("/vehicleDriver/encoder:o", "/ros2/encoder:i");
-
-    if (!cmd_connected || !enc_connected) {
-        RCLCPP_WARN(this->get_logger(), "WARN: Failed to connect YARP ports");
-        throw std::runtime_error("Failed to connect YARP ports");
-    }
-    RCLCPP_INFO(this->get_logger(), "All YARP ports connected successfully");
-
-    // Publisher
-    odom_publisher_ = this->create_publisher<nav_msgs::msg::Odometry>(
-        "odom",
-        rclcpp::QoS(rclcpp::KeepLast(50)).reliable());
-    tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(this);
-
-    // Subscriber
-    velocity_subscriber_ = this->create_subscription<geometry_msgs::msg::Twist>(
-        "/smoothed_cmd_vel",
-        rclcpp::QoS(rclcpp::KeepLast(10)).best_effort(),
-        std::bind(&LuciaController::velocity_callback, this, std::placeholders::_1));
-
-    // Initialize time
-    last_callback_time_ = this->get_clock()->now();
-
-    // Encoder timer (20ms = 50Hz)
-    encoder_timer_ = this->create_wall_timer(
-        std::chrono::milliseconds(20),
-        std::bind(&LuciaController::encoder_timer_callback, this));
-
-    RCLCPP_INFO(this->get_logger(), "LuciaController initialized");
-}
-
-LuciaController::~LuciaController()
-{
-    p_cmd.close();
-    p_enc.close();
-    yarp::os::Network::fini();
-}
-
-void LuciaController::velocity_callback(const geometry_msgs::msg::Twist::SharedPtr msg)
-{
-    std::lock_guard<std::mutex> lock(yarp_mutex_);
-    std::vector<double> cmd = {msg->linear.x, msg->linear.y, msg->angular.z, 0.0};
-    send_velocity_command(cmd);
-}
-
-void LuciaController::send_velocity_command(const std::vector<double>& cmd)
-{
-    if (cmd.size() != VehicleStateConstants::CMD_DATA_SIZE) {
-        RCLCPP_WARN(this->get_logger(), "Invalid command size: %zu", cmd.size());
-        return;
+public:
+    PIDController(double kp, double ki, double kd)
+        : kp_(kp), ki_(ki), kd_(kd),
+          integral_(0.0), prev_error_(0.0),
+          integral_limit_(1.0)
+    {
     }
 
-    yarp::os::Bottle& bc = p_cmd.prepare();
-    bc.clear();
-    for (const auto& c : cmd) {
-        bc.addFloat64(c);
-    }
-    p_cmd.write();
-}
-
-void LuciaController::encoder_timer_callback()
-{
-    std::lock_guard<std::mutex> lock(yarp_mutex_);
-
-    rclcpp::Time current_time = this->get_clock()->now();
-    int64_t dt_ns = (current_time - last_callback_time_).nanoseconds();
-    dt_ = dt_ns * 1e-9;
-    last_callback_time_ = current_time;
-
-    if (dt_ <= VehicleStateConstants::MIN_DT || dt_ > VehicleStateConstants::MAX_DT) {
-        RCLCPP_DEBUG(this->get_logger(), "Time gap check failed: dt=%f", dt_);
-        return;
+    void updateGains(double kp, double ki, double kd)
+    {
+        kp_ = kp;
+        ki_ = ki;
+        kd_ = kd;
     }
 
-    readEncoderAndUpdate(dt_, current_time);
-}
+    double p_control(double error)
+    {
+        return kp_ * error;
+    }
 
-void LuciaController::readEncoderAndUpdate(double dt, const rclcpp::Time& stamp)
+    double i_control(double error, double dt)
+    {
+        integral_ += error * dt;
+        integral_ = std::clamp(integral_, -integral_limit_, integral_limit_);
+        return ki_ * integral_;
+    }
+
+    double d_control(double error, double dt)
+    {
+        if (dt <= 0.0) return 0.0;
+
+        double derivative = (error - prev_error_) / dt;
+        prev_error_ = error;
+        return kd_ * derivative;
+    }
+
+    double update(double error, double dt)
+    {
+        double p_term = p_control(error);
+        double i_term = i_control(error, dt);
+        double d_term = d_control(error, dt);
+        return p_term + i_term + d_term;
+    }
+
+    void reset()
+    {
+        integral_ = 0.0;
+        prev_error_ = 0.0;
+    }
+
+private:
+    double kp_, ki_, kd_;
+    double integral_;
+    double prev_error_;
+    double integral_limit_;
+};
+
+class SpeedSmoothingNode : public rclcpp::Node
 {
-    yarp::os::Bottle* bt = p_enc.read(false);
+public:
+    SpeedSmoothingNode()
+        : Node("speed_smoothing_node"),
+          linear_pid_(1.0, 0.1, 0.1),
+          angular_pid_(0.8, 0.05, 0.08),
+          update_period_ms_(20),
+          last_update_time_initialized_(false),
+          current_linear_vel_(0.0),
+          current_angular_vel_(0.0),
+          target_linear_vel_(0.0),
+          target_angular_vel_(0.0),
+          max_linear_vel_(0.4),
+          max_angular_vel_(0.8)
+    {
+        this->declare_parameter<double>("max_linear_vel", 0.4);
+        this->declare_parameter<double>("max_angular_vel", 0.8);
 
-    if (!bt) {
-        encoder_failure_count_++;
-        if (encoder_failure_count_ % 50 == 0) {
-            RCLCPP_DEBUG(this->get_logger(), "Encoder read failed (%d times)", encoder_failure_count_);
+        this->declare_parameter<double>("pid_kp_linear", 1.0);
+        this->declare_parameter<double>("pid_ki_linear", 0.1);
+        this->declare_parameter<double>("pid_kd_linear", 0.1);
+
+        this->declare_parameter<double>("pid_kp_angular", 0.8);
+        this->declare_parameter<double>("pid_ki_angular", 0.05);
+        this->declare_parameter<double>("pid_kd_angular", 0.08);
+
+        this->declare_parameter<int>("update_frequency", 50);
+
+        this->get_parameter("max_linear_vel", max_linear_vel_);
+        this->get_parameter("max_angular_vel", max_angular_vel_);
+
+        double kp_linear, ki_linear, kd_linear;
+        double kp_angular, ki_angular, kd_angular;
+        int update_frequency;
+
+        this->get_parameter("pid_kp_linear", kp_linear);
+        this->get_parameter("pid_ki_linear", ki_linear);
+        this->get_parameter("pid_kd_linear", kd_linear);
+
+        this->get_parameter("pid_kp_angular", kp_angular);
+        this->get_parameter("pid_ki_angular", ki_angular);
+        this->get_parameter("pid_kd_angular", kd_angular);
+
+        this->get_parameter("update_frequency", update_frequency);
+
+        linear_pid_.updateGains(kp_linear, ki_linear, kd_linear);
+        angular_pid_.updateGains(kp_angular, ki_angular, kd_angular);
+
+        update_period_ms_ = std::max(1, 1000 / update_frequency);
+
+        RCLCPP_INFO(this->get_logger(), "Update frequency: %d Hz (period: %d ms)",
+                    update_frequency, update_period_ms_);
+
+        cmd_vel_sub_ = this->create_subscription<geometry_msgs::msg::Twist>(
+            "cmd_vel",
+            rclcpp::SensorDataQoS(),
+            std::bind(&SpeedSmoothingNode::cmdVelCallback, this, std::placeholders::_1));
+
+        odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
+            "odom",
+            rclcpp::SensorDataQoS(),
+            std::bind(&SpeedSmoothingNode::odomCallback, this, std::placeholders::_1));
+
+        smoothed_cmd_vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>(
+            "smoothed_cmd_vel", 10);
+
+        timer_ = this->create_wall_timer(
+            std::chrono::milliseconds(update_period_ms_),
+            std::bind(&SpeedSmoothingNode::timerCallback, this));
+
+        RCLCPP_INFO(this->get_logger(), "Speed Smoothing Node initialized successfully");
+        RCLCPP_INFO(this->get_logger(),
+                    "Max velocities - Linear: %.2f m/s, Angular: %.2f rad/s",
+                    max_linear_vel_, max_angular_vel_);
+    }
+
+private:
+    PIDController linear_pid_;
+    PIDController angular_pid_;
+
+    int update_period_ms_;
+    bool last_update_time_initialized_;
+    std::chrono::steady_clock::time_point last_update_time_steady_;
+
+    double current_linear_vel_;
+    double current_angular_vel_;
+    double target_linear_vel_;
+    double target_angular_vel_;
+
+    double max_linear_vel_;
+    double max_angular_vel_;
+
+    rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_sub_;
+    rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
+    rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr smoothed_cmd_vel_pub_;
+    rclcpp::TimerBase::SharedPtr timer_;
+
+    void cmdVelCallback(const geometry_msgs::msg::Twist::SharedPtr msg)
+    {
+        target_linear_vel_ = std::clamp(msg->linear.x, -max_linear_vel_, max_linear_vel_);
+        target_angular_vel_ = std::clamp(msg->angular.z, -max_angular_vel_, max_angular_vel_);
+
+        RCLCPP_DEBUG(this->get_logger(),
+                     "cmd_vel received: target_linear=%.3f, target_angular=%.3f",
+                     target_linear_vel_, target_angular_vel_);
+    }
+
+    void odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
+    {
+        current_linear_vel_ = msg->twist.twist.linear.x;
+        current_angular_vel_ = msg->twist.twist.angular.z;
+
+        RCLCPP_DEBUG(this->get_logger(),
+                     "odom received: current_linear=%.3f, current_angular=%.3f",
+                     current_linear_vel_, current_angular_vel_);
+    }
+
+    void timerCallback()
+    {
+        auto current_time = std::chrono::steady_clock::now();
+        double dt = static_cast<double>(update_period_ms_) / 1000.0;
+
+        if (!last_update_time_initialized_)
+        {
+            last_update_time_steady_ = current_time;
+            last_update_time_initialized_ = true;
+            return;
         }
-        publishOdometry(stamp, 0.0, 0.0, 0.0);
-        return;
+
+        dt = std::chrono::duration<double>(current_time - last_update_time_steady_).count();
+
+        if (dt > 1.0 || dt <= 0.0)
+        {
+            dt = static_cast<double>(update_period_ms_) / 1000.0;
+        }
+
+        last_update_time_steady_ = current_time;
+
+        auto [error_linear, error_angular] = errorCalculation();
+
+        double smoothed_linear = linear_pid_.update(error_linear, dt);
+        double smoothed_angular = angular_pid_.update(error_angular, dt);
+
+        smoothed_linear = std::clamp(smoothed_linear, -max_linear_vel_, max_linear_vel_);
+        smoothed_angular = std::clamp(smoothed_angular, -max_angular_vel_, max_angular_vel_);
+
+        geometry_msgs::msg::Twist smoothed_msg;
+        smoothed_msg.linear.x = smoothed_linear;
+        smoothed_msg.angular.z = smoothed_angular;
+        smoothed_cmd_vel_pub_->publish(smoothed_msg);
+
+        RCLCPP_DEBUG(this->get_logger(),
+                     "Timer update (dt=%.4f s): smoothed_linear=%.3f, smoothed_angular=%.3f",
+                     dt, smoothed_linear, smoothed_angular);
     }
 
-    // Encoder size check
-    if (bt->size() < 3) {
-        encoder_error_count_++;
-        RCLCPP_DEBUG(this->get_logger(), "Encoder size too short: %ld (expected >= 3)", bt->size());
-        return;
+    std::pair<double, double> errorCalculation()
+    {
+        double linear_error = target_linear_vel_ - current_linear_vel_;
+        double angular_error = target_angular_vel_ - current_angular_vel_;
+        return std::make_pair(linear_error, angular_error);
     }
+};
 
-    // Get encoder values
-    double vx = bt->get(0).asFloat64();
-    double vy = bt->get(1).asFloat64();
-    double w = bt->get(2).asFloat64();
-    double ta = bt->get(2).asFloat64();
-
-    // NaN/Inf validation
-    if (std::isnan(vx) || std::isnan(vy) || std::isnan(w) ||
-        std::isinf(vx) || std::isinf(vy) || std::isinf(w)) {
-        encoder_error_count_++;
-        RCLCPP_WARN(this->get_logger(), "Invalid encoder value (NaN/Inf): vx=%f, vy=%f, vth=%f", vx, vy, w);
-        return;
-    }
-
-    // Debug log
-    count ++;
-    if(count % 10 == 0){
-        RCLCPP_DEBUG(this->get_logger(), "Encoder: vx=%f, vy=%f, w=%f, ta,=%f, dt=%f", vx, vy, w, ta, dt);
-    }
-
-    // Integrate odometry
-    integrate(vx, vy, w, dt);
-
-    // Publish odometry and broadcast transform
-    publishOdometry(stamp, vx, vy, w);
-}
-
-void LuciaController::integrate(double vx, double vy, double vth, double dt)
-{
-    x_ += (vx * std::cos(yaw_) - vy * std::sin(yaw_)) * dt;
-    y_ += (vx * std::sin(yaw_) + vy * std::cos(yaw_)) * dt;
-    yaw_ += vth * dt;
-
-    // Normalize angle to [-π, π]
-    if (yaw_ > M_PI) {
-        yaw_ -= 2 * M_PI;
-    }
-    if (yaw_ < -M_PI) {
-        yaw_ += 2 * M_PI;
-    }
-
-    RCLCPP_DEBUG(this->get_logger(), "Odometry: x=%f, y=%f, yaw=%f (rad, %.1f deg)", x_, y_, yaw_, yaw_ * 180.0 / M_PI);
-}
-
-void LuciaController::publishOdometry(const rclcpp::Time& stamp, double vx, double vy, double vth)
-{
-    // Create odometry message
-    auto odom = nav_msgs::msg::Odometry();
-    odom.header.stamp = stamp;
-    odom.header.frame_id = "odom";
-    odom.child_frame_id = "base_footprint";
-
-    // Position
-    odom.pose.pose.position.x = x_;
-    odom.pose.pose.position.y = y_;
-    odom.pose.pose.position.z = 0.0;
-
-    // Orientation
-    tf2::Quaternion q;
-    q.setRPY(0, 0, yaw_);
-    odom.pose.pose.orientation = tf2::toMsg(q);
-
-    // Covariance
-    for (int i = 0; i < 36; i++) {
-        odom.pose.covariance[i] = 0.0;
-        odom.twist.covariance[i] = 0.0;
-    }
-    odom.pose.covariance[0] = 0.01;   // x
-    odom.pose.covariance[7] = 0.01;   // y
-    odom.pose.covariance[35] = 0.02;  // yaw
-    odom.twist.covariance[0] = 0.01;  // vx
-    odom.twist.covariance[7] = 0.01;  // vy
-    odom.twist.covariance[35] = 0.02; // vth
-
-    // Velocity
-    odom.twist.twist.linear.x = vx;
-    odom.twist.twist.linear.y = vy;
-    odom.twist.twist.linear.z = 0.0;
-    odom.twist.twist.angular.x = 0.0;
-    odom.twist.twist.angular.y = 0.0;
-    odom.twist.twist.angular.z = vth;
-
-    odom_publisher_->publish(odom);
-
-    // Broadcast transform
-    geometry_msgs::msg::TransformStamped transform;
-    transform.header.stamp = stamp;
-    transform.header.frame_id = "odom";
-    transform.child_frame_id = "base_footprint";
-
-    transform.transform.translation.x = x_;
-    transform.transform.translation.y = y_;
-    transform.transform.translation.z = 0.0;
-    transform.transform.rotation = odom.pose.pose.orientation;
-
-    tf_broadcaster_->sendTransform(transform);
-}
-
-int main(int argc, char* argv[])
+int main(int argc, char *argv[])
 {
     rclcpp::init(argc, argv);
-    auto node = std::make_shared<LuciaController>();
-    rclcpp::spin(node);
+    rclcpp::spin(std::make_shared<SpeedSmoothingNode>());
     rclcpp::shutdown();
     return 0;
 }
