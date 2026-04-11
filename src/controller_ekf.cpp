@@ -27,7 +27,8 @@ public:
       cur_vx_(0.0), cur_vy_(0.0), cur_vth_(0.0),
       tgt_vx_(0.0), tgt_vy_(0.0), tgt_vth_(0.0),
       filt_tgt_vx_(0.0), filt_tgt_vy_(0.0), filt_tgt_vth_(0.0),
-      failure_count_(0), encoder_error_count_(0)
+      failure_count_(0), encoder_error_count_(0),
+      encoder_received_(false), loop_count_(0)
     {
         RCLCPP_INFO(get_logger(), "RobotDriver (raw wheel odometry mode) started.");
 
@@ -38,6 +39,7 @@ public:
         declare_parameter<bool>("use_ramp", true);
         declare_parameter<double>("ramp_time_linear", 0.6);
         declare_parameter<double>("ramp_time_angular", 0.6);
+        declare_parameter<double>("encoder_timeout", 0.5);
 
         // raw wheel odom 用
         declare_parameter<std::string>("raw_odom_topic", "wheel_odom");
@@ -78,6 +80,7 @@ public:
         if(!ok_enc) RCLCPP_WARN(get_logger(), "Failed to connect encoder port");
 
         last_time_ = now();
+        last_encoder_time_ = now();
     }
 
     ~RobotDriver() override {
@@ -96,12 +99,34 @@ private:
     void onLoop() {
         rclcpp::Time now_t = now();
         double dt = (now_t - last_time_).seconds();
-        if (dt <= 0.0) dt = LOOP_PERIOD;
+        if (dt <= 0.0 || dt > 1.0) {
+            RCLCPP_WARN(get_logger(), "Abnormal dt: %.4f s, using %.4f s", dt, LOOP_PERIOD);
+            dt = LOOP_PERIOD;
+        }
         last_time_ = now_t;
+
+        readEncoderAndUpdate(dt, now_t);
+
+        if (!encoder_received_) {
+            RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 2000,
+                "Waiting for first encoder data, skipping command update");
+            return;
+        }
 
         updateCommand(dt);
         sendMotorCommand();
-        readEncoderAndUpdate(dt, now_t);
+
+        if (++loop_count_ % 100 == 0) {
+            double dvx, dvy, dvth, tx, ty, tth;
+            {
+                std::lock_guard<std::mutex> lk(cmd_mutex_);
+                dvx = cur_vx_; dvy = cur_vy_; dvth = cur_vth_;
+                tx = tgt_vx_;  ty = tgt_vy_;  tth = tgt_vth_;
+            }
+            RCLCPP_INFO(get_logger(),
+                "[Diag #%d] cur=(%.3f, %.3f, %.3f) tgt=(%.3f, %.3f, %.3f) enc_fail=%d",
+                loop_count_, dvx, dvy, dvth, tx, ty, tth, failure_count_);
+        }
     }
 
     void updateCommand(double dt) {
@@ -112,6 +137,12 @@ private:
         double raw_vx  = tgt_vx_;
         double raw_vy  = tgt_vy_;
         double raw_vth = tgt_vth_;
+
+        // Reset filtered targets on velocity reversal to prevent overshoot
+        constexpr double kResetThreshold = 0.05;
+        if (raw_vx  * filt_tgt_vx_  < 0.0 && std::abs(raw_vx)  > kResetThreshold) filt_tgt_vx_  = 0.0;
+        if (raw_vy  * filt_tgt_vy_  < 0.0 && std::abs(raw_vy)  > kResetThreshold) filt_tgt_vy_  = 0.0;
+        if (raw_vth * filt_tgt_vth_ < 0.0 && std::abs(raw_vth) > kResetThreshold) filt_tgt_vth_ = 0.0;
 
         if (use_smoothing) {
             double tau_lin = std::max(1e-4, get_parameter("smoothing_tau_linear").as_double());
@@ -141,6 +172,11 @@ private:
             cur_vth_ += (filt_tgt_vth_ - cur_vth_) * ratio_ang;
         }
 
+        // Clamp outputs to prevent exceeding velocity limits
+        cur_vx_  = std::clamp(cur_vx_,  -MAX_LINEAR_X,  MAX_LINEAR_X);
+        cur_vy_  = std::clamp(cur_vy_,  -MAX_LINEAR_Y,  MAX_LINEAR_Y);
+        cur_vth_ = std::clamp(cur_vth_, -MAX_ANGULAR_Z, MAX_ANGULAR_Z);
+
         latest_cmd_[0] = cur_vx_;
         latest_cmd_[1] = cur_vy_;
         latest_cmd_[2] = cur_vth_;
@@ -148,9 +184,14 @@ private:
     }
 
     void sendMotorCommand() {
+        double cmd[4];
+        {
+            std::lock_guard<std::mutex> lk(cmd_mutex_);
+            for (int i = 0; i < 4; ++i) cmd[i] = latest_cmd_[i];
+        }
         yarp::os::Bottle& b = g_cmd_port.prepare();
         b.clear();
-        for (double v : latest_cmd_) b.addFloat64(v);
+        for (double v : cmd) b.addFloat64(v);
         g_cmd_port.write();
     }
 
@@ -161,9 +202,16 @@ private:
             if (failure_count_ % 50 == 0) {
                 RCLCPP_WARN(get_logger(), "Encoder read failed (%d)", failure_count_);
             }
-            // 読めなかった周期はゼロ速度とみなす（必要なら保持）
-            //publishOdometry(stamp, 0.0, 0.0, 0.0);
-            // 直前の速度を保持する
+            if (encoder_received_) {
+                double odom_age = (stamp - last_encoder_time_).seconds();
+                double timeout = get_parameter("encoder_timeout").as_double();
+                if (odom_age > timeout) {
+                    RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000,
+                        "Encoder data stale (%.2f s > %.2f s), skipping odometry update",
+                        odom_age, timeout);
+                    return;
+                }
+            }
             publishOdometry(stamp, cur_vx_, cur_vy_, cur_vth_);
             return;
         }
@@ -183,6 +231,8 @@ private:
             return;
         }
 
+        encoder_received_ = true;
+        last_encoder_time_ = stamp;
         integrate(vx, vy, vth, dt);
         publishOdometry(stamp, vx, vy, vth);
     }
@@ -282,6 +332,11 @@ private:
 
     int failure_count_;
     int encoder_error_count_;
+
+    // エンコーダ受信フラグ・タイムアウト管理
+    bool encoder_received_;
+    rclcpp::Time last_encoder_time_;
+    int loop_count_;
 
     std::mutex cmd_mutex_;
 };
