@@ -242,9 +242,9 @@ private:
       return;
     }
 
-    integrate(vx, vy, vth, dt);
     encoder_received_ = true;
     last_encoder_time_ = stamp;
+    integrate(vx, vy, vth, dt);
     publishOdometry(stamp, vx, vy, vth);
   }
 
