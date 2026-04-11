@@ -24,10 +24,10 @@ public:
       update_frequency_(50)
     {
         // Parameters
-        this->declare_parameter<double>("max_linear_vel", 0.4);
+        this->declare_parameter<double>("max_linear_vel", 0.3);
         this->declare_parameter<double>("max_angular_vel", 0.8);
-        this->declare_parameter<double>("tau_linear", 0.2);
-        this->declare_parameter<double>("tau_angular", 0.2);
+        this->declare_parameter<double>("tau_linear", 0.7); // 0(quickly) - 1(slowly) 
+        this->declare_parameter<double>("tau_angular", 0.2); // 0(quickly) - 1(slowly) 
         this->declare_parameter<int>("update_frequency", 30);
 
         this->get_parameter("max_linear_vel", max_linear_vel_);
@@ -125,11 +125,9 @@ private:
         const double alpha_linear = 1.0 - std::exp(-dt / safe_tau_linear);
         const double alpha_angular = 1.0 - std::exp(-dt / safe_tau_angular);
 
-        current_linear_vel_ =
-            current_linear_vel_ + alpha_linear * (target_linear_vel_ - current_linear_vel_);
+        current_linear_vel_ = current_linear_vel_ + alpha_linear * (target_linear_vel_ - current_linear_vel_);
 
-        current_angular_vel_ =
-            current_angular_vel_ + alpha_angular * (target_angular_vel_ - current_angular_vel_);
+        current_angular_vel_ = current_angular_vel_ + alpha_angular * (target_angular_vel_ - current_angular_vel_);
 
         // 最終出力も最大速度で制限
         current_linear_vel_ = std::clamp(current_linear_vel_, -max_linear_vel_, max_linear_vel_);
