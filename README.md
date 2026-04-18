@@ -96,9 +96,18 @@ source install/setup.bash
 3. (Wi-Fi settings) Connect to [lucia-g-router]
 4. Release the emergency stop button
 5. Switch Lucia's mode to [Remote] (`remote`モードに切り替える)
-6. Launch ROS2 Node
+6. Bringup Lucia ROS 2 system
 ```bash
 ros2 launch lucia_controller bringup.launch.py 
+```
+7. Launch teleop or joystick controll
+A robot-agnostic teleoperation node to convert keyboard commands to Twist
+```bash
+ros2 launch lucia_controller keyboard_teleop.launch.py
+```
+Generic joystick teleop for twist robots.
+```bash
+ros2 launch lucia_controller joystick_teleop.launch.py
 ```
 
 ## 🛠️ Debug
@@ -129,4 +138,5 @@ ros2 run lucia_controller lucia_velocity_smoother_node --ros-args --log-level de
 - [ros2_control](https://control.ros.org/humble/index.html)
 - [robot localization](https://docs.ros.org/en/melodic/api/robot_localization/html/index.html)
 - [joy](https://docs.ros.org/en/humble/p/joy/index.html)
+- [teleop_twist_keyboard](https://docs.ros.org/en/humble/p/teleop_twist_keyboard/)
 - [teleop_twist_joy](https://docs.ros.org/en/iron/p/teleop_twist_joy/)
