@@ -79,7 +79,7 @@ yarp namespace /lucia_g
 Install robot-localization
 ```bash
 sudo apt update
-sudo apt install ros-${ROS_DISTRO}-nav-msgs ros-${ROS_DISTRO}-nav2-bringup ros-${ROS_DISTRO}-tf2-ros ros-${ROS_DISTRO}-tf2-geometry-msgs
+sudo apt install ros-${ROS_DISTRO}-nav-msgs ros-${ROS_DISTRO}-nav2-bringup ros-${ROS_DISTRO}-tf2-ros ros-${ROS_DISTRO}-tf2-geometry-msgs ros-${ROS_DISTRO}-joy
 ```
 Clone & Build
 ```bash
@@ -128,3 +128,4 @@ ros2 run lucia_controller lucia_velocity_smoother_node --ros-args --log-level de
 - [ROS 2 Humble](https://docs.ros.org/en/humble/)
 - [ros2_control](https://control.ros.org/humble/index.html)
 - [robot localization](https://docs.ros.org/en/melodic/api/robot_localization/html/index.html)
+- [joy](https://docs.ros.org/en/humble/p/joy/index.html)
