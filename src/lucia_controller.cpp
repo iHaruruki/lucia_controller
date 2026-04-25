@@ -178,25 +178,36 @@ void LuciaController::publishOdometry(const rclcpp::Time& stamp, double vx, doub
     q.setRPY(0, 0, yaw_);
     odom.pose.pose.orientation = tf2::toMsg(q);
 
+    // Linear
+    odom.twist.twist.linear.x = vx;
+    odom.twist.twist.linear.y = vy;
+    odom.twist.twist.linear.z = 0.0;
+
+    // Angular
+    odom.twist.twist.angular.x = 0.0;
+    odom.twist.twist.angular.y = 0.0;
+    odom.twist.twist.angular.z = vth;
+
     // Covariance
     for (int i = 0; i < 36; i++) {
         odom.pose.covariance[i] = 0.0;
         odom.twist.covariance[i] = 0.0;
     }
-    odom.pose.covariance[0] = 0.01;   // x
-    odom.pose.covariance[7] = 0.01;   // y
-    odom.pose.covariance[35] = 0.02;  // yaw
+    // Pose
+    odom.pose.covariance[0] = 0.02;   // x
+    odom.pose.covariance[7] = 0.02;   // y
+    odom.pose.covariance[14] = 1e6;   // z
+    odom.pose.covariance[21] = 1e6;   // roll
+    odom.pose.covariance[28] = 1e6;   // pitch
+    odom.pose.covariance[35] = 0.5;  // yaw
+
+    // Twist
     odom.twist.covariance[0] = 0.01;  // vx
     odom.twist.covariance[7] = 0.01;  // vy
+    odom.twist.covariance[14] = 1e6;  // vz
+    odom.twist.covariance[21] = 1e6;  // vroll
+    odom.twist.covariance[28] = 1e6;  // vpitch
     odom.twist.covariance[35] = 0.02; // vth
-
-    // Velocity
-    odom.twist.twist.linear.x = vx;
-    odom.twist.twist.linear.y = vy;
-    odom.twist.twist.linear.z = 0.0;
-    odom.twist.twist.angular.x = 0.0;
-    odom.twist.twist.angular.y = 0.0;
-    odom.twist.twist.angular.z = vth;
 
     odom_publisher_->publish(odom);
 
