@@ -199,7 +199,7 @@ void LuciaController::publishOdometry(const rclcpp::Time& stamp, double vx, doub
     odom.pose.covariance[14] = 1e6;   // z
     odom.pose.covariance[21] = 1e6;   // roll
     odom.pose.covariance[28] = 1e6;   // pitch
-    odom.pose.covariance[35] = 0.5;  // yaw
+    odom.pose.covariance[35] = 0.5;   // yaw
 
     // Twist
     odom.twist.covariance[0] = 0.01;  // vx
@@ -207,7 +207,7 @@ void LuciaController::publishOdometry(const rclcpp::Time& stamp, double vx, doub
     odom.twist.covariance[14] = 1e6;  // vz
     odom.twist.covariance[21] = 1e6;  // vroll
     odom.twist.covariance[28] = 1e6;  // vpitch
-    odom.twist.covariance[35] = 0.02; // vth
+    odom.twist.covariance[35] = 0.5;  // vth
 
     odom_publisher_->publish(odom);
 
