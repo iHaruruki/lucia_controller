@@ -10,8 +10,8 @@
 
 namespace VehicleStateConstants {
     constexpr double DEFAULT_DT = 0.02;
-    constexpr double MIN_DT = 0.001;
-    constexpr double MAX_DT = 0.1;
+    constexpr double MIN_DT = 0.03;
+    constexpr double MAX_DT = 0.07;
     constexpr size_t CMD_DATA_SIZE = 4;
     constexpr size_t ENCODER_DATA_SIZE = 3;
 }

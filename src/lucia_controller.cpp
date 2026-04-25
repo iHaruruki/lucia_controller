@@ -42,9 +42,9 @@ LuciaController::LuciaController()
     // Initialize time
     last_callback_time_ = this->get_clock()->now();
 
-    // Encoder timer (20ms = 50Hz)
+    // Encoder timer (50ms = 20Hz)
     encoder_timer_ = this->create_wall_timer(
-        std::chrono::milliseconds(20),
+        std::chrono::milliseconds(50),
         std::bind(&LuciaController::encoder_timer_callback, this));
 
     RCLCPP_INFO(this->get_logger(), "LuciaController initialized");
