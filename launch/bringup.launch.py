@@ -132,6 +132,9 @@ def generate_launch_description():
         executable='lucia_velocity_smoother_node',
         name='lucia_velocity_smoother_node',
         output='screen',
+        remappings=[
+                ('/cmd_vel', '/merged_cmd_vel')
+            ],
     ))
 
     ld.add_action(Node(

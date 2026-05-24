@@ -7,7 +7,7 @@ def generate_launch_description():
         Node(
             package='joy',
             executable='joy_node',
-            name='joy_node',
+            name='lucia_joy_node',
             parameters=[{
                 'device_id': 0,
                 'deadzone': 0.05,
@@ -18,7 +18,7 @@ def generate_launch_description():
         Node(
             package='lucia_controller',
             executable='joy_to_cmdvel_node',
-            name='joy_to_cmdvel_node',
+            name='lucia_joy_to_cmdvel_node',
             parameters=[{
                 'linear_x_base': 0.1,
                 'linear_y_base': 0.1,
@@ -27,6 +27,9 @@ def generate_launch_description():
                 'angular_y_base': 0.3,
                 'angular_z_base': 0.3,
             }],
+            remappings=[
+                ('/cmd_vel', '/joy_vel')
+            ],
             output='screen',
         ),
     ])

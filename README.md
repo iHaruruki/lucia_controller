@@ -79,7 +79,7 @@ yarp namespace /lucia_g
 Install robot-localization
 ```bash
 sudo apt update
-sudo apt install ros-${ROS_DISTRO}-nav-msgs ros-${ROS_DISTRO}-nav2-bringup ros-${ROS_DISTRO}-tf2-ros ros-${ROS_DISTRO}-tf2-geometry-msgs ros-${ROS_DISTRO}-joy ros-${ROS_DISTRO}-teleop-twist-joy
+sudo apt install ros-${ROS_DISTRO}-nav-msgs ros-${ROS_DISTRO}-nav2-bringup ros-${ROS_DISTRO}-tf2-ros ros-${ROS_DISTRO}-tf2-geometry-msgs ros-${ROS_DISTRO}-joy ros-${ROS_DISTRO}-teleop-twist-joy ros-$ROS_DISTRO-twist-mux
 ```
 Clone & Build
 ```bash
@@ -140,3 +140,4 @@ ros2 run lucia_controller lucia_velocity_smoother_node --ros-args --log-level de
 - [joy](https://docs.ros.org/en/humble/p/joy/index.html)
 - [teleop_twist_keyboard](https://docs.ros.org/en/humble/p/teleop_twist_keyboard/)
 - [teleop_twist_joy](https://docs.ros.org/en/iron/p/teleop_twist_joy/)
+- [twist_mux](https://wiki.ros.org/twist_mux)

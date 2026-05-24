@@ -7,7 +7,7 @@ def generate_launch_description():
         Node(
             package='teleop_twist_keyboard',
             executable='teleop_twist_keyboard',
-            name='teleop_twist_keyboard',
+            name='lucia_teleop_twist_keyboard',
             prefix='gnome-terminal --',
             output='screen',
             parameters=[{
@@ -15,5 +15,8 @@ def generate_launch_description():
                 'speed': 0.10,
                 'turn': 0.30,
             }],
+            remappings=[
+                ('/cmd_vel', '/key_vel')
+            ],
         ),
     ])
