@@ -8,22 +8,30 @@
 twist_mux:
   ros__parameters:
     topics:
-      navigation:
-        topic   : nav_vel
-        timeout : 0.5
-        priority: 10
-      joystick:
-        topic   : joy_vel
-        timeout : 0.5
-        priority: 100
       keyboard:
         topic   : key_vel
         timeout : 0.5
         priority: 250
-      tablet:
-        topic   : tab_vel
+      joystick:
+        topic   : joy_vel
+        timeout : 0.5
+        priority: 200
+      remote_keyboard: # Control commands sent from Makuhari Messe
+        topic   : /remote/key_vel
+        timeout : 0.5
+        priority: 150
+      remote_joystick: # Control commands sent from Makuhari Messe
+        topic   : /remote/joy_vel
         timeout : 0.5
         priority: 100
+      remote_tatto: # Control commands sent from Makuhari Messe
+        topic   : /remote/tatto_vel
+        timeout : 0.5
+        priority: 100
+      navigation:
+        topic   : nav_vel
+        timeout : 0.5
+        priority: 10
 
     locks:
       pause:
@@ -39,3 +47,7 @@ twist_mux:
         topic   : joy_priority
         timeout : 0.0
         priority: 100
+      keyboard :
+        topic   : key_priority
+        timeout : 0.0
+        priority: 255

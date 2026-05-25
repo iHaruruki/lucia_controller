@@ -31,7 +31,7 @@ def generate_launch_description():
                 'angular_z_base': 0.3,
             }],
             remappings=[
-                ('/cmd_vel', '/joy_vel_remote')
+                ('/cmd_vel', '/remote/joy_vel')
             ],
             output='screen',
         ),
