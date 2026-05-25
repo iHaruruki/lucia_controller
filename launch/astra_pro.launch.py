@@ -8,7 +8,7 @@ def generate_launch_description():
     # Launch arguments declarations
     declare_camera_name = DeclareLaunchArgument(
         'camera_name',
-        default_value='camera',
+        default_value='lucia_astra_pro',
         description='Unique camera name'
     )
     declare_depth_registration = DeclareLaunchArgument(
@@ -423,4 +423,29 @@ def generate_launch_description():
                 ]
             ),
         ]),
+
+        # Image transport republish nodes (outside of namespace group)
+        Node(
+            package='image_transport',
+            executable='republish',
+            name='lucia_color_republish',
+            output='screen',
+            arguments=['raw', 'compressed'],
+            remappings=[
+                ('in', '/lucia_astra_pro/color/image_raw'),
+                ('out/compressed', '/lucia_astra_pro/color/image_raw/compressed'),
+            ]
+        ),
+
+        Node(
+            package='image_transport',
+            executable='republish',
+            name='lucia_depth_republish',
+            output='screen',
+            arguments=['raw', 'compressedDepth'],
+            remappings=[
+                ('in', '/lucia_astra_pro/depth/image_raw'),
+                ('out/compressedDepth', '/lucia_astra_pro/depth/image_raw/compressed'),
+            ]
+        ),
     ])
