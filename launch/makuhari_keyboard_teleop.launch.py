@@ -16,7 +16,7 @@ def generate_launch_description():
                 'turn': 0.30,
             }],
             remappings=[
-                ('/cmd_vel', '/remote/key_vel')
+                ('/cmd_vel', '/key_vel/remote')
             ],
         ),
     ])

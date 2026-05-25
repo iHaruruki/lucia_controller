@@ -14,7 +14,7 @@ def generate_launch_description():
                 'autorepeat_rate': 0.0,
             }],
             remappings=[
-                ('/joy', '/joy_remote')
+                ('/joy', '/joy/remote')
             ],
         ),
         # joy_to_cmd_vel_node 
@@ -31,7 +31,8 @@ def generate_launch_description():
                 'angular_z_base': 0.3,
             }],
             remappings=[
-                ('/cmd_vel', '/remote/joy_vel')
+                ('/cmd_vel', '/joy_vel/remote'),
+                ('/joy', '/joy/remote')
             ],
             output='screen',
         ),
