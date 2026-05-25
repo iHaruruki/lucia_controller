@@ -15,7 +15,7 @@ twist_mux:
       joystick:
         topic   : joy_vel
         timeout : 0.5
-        priority: 200
+        priority: 240
       remote_keyboard: # Control commands sent from Makuhari Messe
         topic   : /remote/key_vel
         timeout : 0.5
@@ -23,31 +23,22 @@ twist_mux:
       remote_joystick: # Control commands sent from Makuhari Messe
         topic   : /remote/joy_vel
         timeout : 0.5
-        priority: 100
+        priority: 140
       remote_tatto: # Control commands sent from Makuhari Messe
         topic   : /remote/tatto_vel
         timeout : 0.5
-        priority: 100
+        priority: 130
       navigation:
         topic   : nav_vel
         timeout : 0.5
-        priority: 10
+        priority: 50
 
     locks:
-      pause:
-        topic   : pause_navigation
-        timeout : 0.0
-        # Same priority as joystick control, so it'll not block it.
-        priority: 100
-      loop_closure:
-        topic   : stop_closing_loop
+      reject_from_remote: # Rejecting cmd_vel input from Makuhari
+        topic   : reject_makuhari_vel
         timeout : 0.0
         priority: 200
-      joystick :
-        topic   : joy_priority
+      reject_tatto_vel :
+        topic   : reject_tatto_vel
         timeout : 0.0
-        priority: 100
-      keyboard :
-        topic   : key_priority
-        timeout : 0.0
-        priority: 255
+        priority: 135
