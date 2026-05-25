@@ -1,0 +1,10 @@
+digraph G {
+"camera_link" -> "lucia_astra_pro_color_frame"[label=" Broadcaster: default_authority\nAverage rate: 20.522\nBuffer length: 3.606\nMost recent transform: 1779703467.352608\nOldest transform: 1779703463.746639\n"];
+"camera_link" -> "lucia_astra_pro_depth_frame"[label=" Broadcaster: default_authority\nAverage rate: 10.261\nBuffer length: 3.606\nMost recent transform: 1779703467.352608\nOldest transform: 1779703463.746639\n"];
+"lucia_astra_pro_color_frame" -> "lucia_astra_pro_color_optical_frame"[label=" Broadcaster: default_authority\nAverage rate: 10.261\nBuffer length: 3.606\nMost recent transform: 1779703467.352608\nOldest transform: 1779703463.746639\n"];
+"lucia_astra_pro_depth_frame" -> "lucia_astra_pro_depth_optical_frame"[label=" Broadcaster: default_authority\nAverage rate: 10.261\nBuffer length: 3.606\nMost recent transform: 1779703467.352608\nOldest transform: 1779703463.746639\n"];
+edge [style=invis];
+ subgraph cluster_legend { style=bold; color=black; label ="view_frames Result";
+"Recorded at time: 1779703468.7601414"[ shape=plaintext ] ;
+}->"camera_link";
+}
