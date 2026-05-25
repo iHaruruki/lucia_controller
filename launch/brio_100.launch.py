@@ -23,7 +23,7 @@ def generate_launch_description():
                 'contrast': -1,
                 'exposure': 100,
                 'focus': -1,
-                'frame_id': 'brio_100',
+                'frame_id': 'brio_100_link',
                 'framerate': 30.0,
                 'gain': -1,
                 'io_method': 'mmap',
