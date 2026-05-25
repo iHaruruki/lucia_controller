@@ -42,3 +42,7 @@ twist_mux:
         topic   : reject_tatto_vel
         timeout : 0.0
         priority: 135
+      reject_navigation :
+        topic   : reject_nav_vel
+        timeout : 0.0
+        priority: 100
