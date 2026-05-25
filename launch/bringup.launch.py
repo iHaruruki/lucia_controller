@@ -24,6 +24,13 @@ def generate_launch_description():
             os.path.join(launch_dir, 'lucia_controller.launch.py')
         )
     ))
+
+    # twist_mux
+    ld.add_action(IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(launch_dir, 'twist_mux.launch.py')
+        )
+    ))
     
     # LiDAR(urg_node2)
     ld.add_action(IncludeLaunchDescription(

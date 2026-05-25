@@ -6,8 +6,6 @@ from launch_ros.substitutions import FindPackageShare
 import os
 
 def generate_launch_description():
-    nav2_bringup_dir = FindPackageShare(package='nav2_bringup').find('nav2_bringup')
-    
     return LaunchDescription([
         # Lucia Controller
         Node(
@@ -22,6 +20,18 @@ def generate_launch_description():
             package='lucia_controller',
             executable='lucia_velocity_smoother_node',
             name='lucia_velocity_smoother_node',
+            parameters=[{
+                'max_linear_vel_x': 0.3,
+                'max_linear_vel_y': 0.3,
+                'max_angular_vel': 0.8,
+                'tau_linear_x': 0.7,
+                'tau_linear_y': 0.37,
+                'tau_angular': 0.2,
+                'update_frequency': 30,
+            }],
+            remappings=[
+                ('/cmd_vel', '/twist_mux/cmd_vel')
+            ],
             output='screen',
         ),
         
