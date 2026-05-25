@@ -141,3 +141,4 @@ ros2 run lucia_controller lucia_velocity_smoother_node --ros-args --log-level de
 - [teleop_twist_keyboard](https://docs.ros.org/en/humble/p/teleop_twist_keyboard/)
 - [teleop_twist_joy](https://docs.ros.org/en/iron/p/teleop_twist_joy/)
 - [twist_mux](https://wiki.ros.org/twist_mux)
+- [twist_mux (GitHub)](https://github.com/ros-teleop/twist_mux.git)
