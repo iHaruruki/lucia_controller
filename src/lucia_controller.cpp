@@ -8,7 +8,8 @@ LuciaController::LuciaController()
       x_(0.0),
       y_(0.0),
       yaw_(0.0),
-      dt_(VehicleStateConstants::DEFAULT_DT)
+      dt_(VehicleStateConstants::DEFAULT_DT),
+      cmd_timeout_warned_(false)
 {
     // Initialize YARP network
     yarp::os::Network::init();
@@ -41,11 +42,17 @@ LuciaController::LuciaController()
 
     // Initialize time
     last_callback_time_ = this->get_clock()->now();
+    last_cmd_time_ = std::chrono::steady_clock::now();
 
-    // Encoder timer (50ms = 20Hz)
+    // Encoder timer
     encoder_timer_ = this->create_wall_timer(
         std::chrono::milliseconds(50),
         std::bind(&LuciaController::encoder_timer_callback, this));
+
+    // Watchdog timer
+    watchdog_timer_ = this->create_wall_timer(
+        std::chrono::milliseconds(1000),
+        std::bind(&LuciaController::watchdog_timer_callback, this));
 
     RCLCPP_INFO(this->get_logger(), "LuciaController initialized");
 }
@@ -62,6 +69,34 @@ void LuciaController::velocity_callback(const geometry_msgs::msg::Twist::SharedP
     std::lock_guard<std::mutex> lock(yarp_mutex_);
     std::vector<double> cmd = {msg->linear.x, msg->linear.y, msg->angular.z, 0.0};
     send_velocity_command(cmd);
+    
+    last_cmd_time_ = std::chrono::steady_clock::now();
+    cmd_timeout_warned_ = false;  // リセット
+    
+    RCLCPP_DEBUG(this->get_logger(), "Velocity command received: [%.2f, %.2f, %.2f]",
+                 msg->linear.x, msg->linear.y, msg->angular.z);
+}
+
+// Watchdog timer callback
+void LuciaController::watchdog_timer_callback()
+{
+    std::lock_guard<std::mutex> lock(yarp_mutex_);
+    
+    auto now = std::chrono::steady_clock::now();
+    auto time_since_last_cmd = now - last_cmd_time_;
+    
+    if (time_since_last_cmd > CMD_TIMEOUT) {
+        std::vector<double> zero_cmd = {0.0, 0.0, 0.0, 0.0};
+        send_velocity_command(zero_cmd);
+        
+        if (!cmd_timeout_warned_) {
+            RCLCPP_WARN(this->get_logger(),
+                        "Command timeout detected! Time since last command: %.1f ms. "
+                        "Sending zero velocity for safety.",
+                        std::chrono::duration<double, std::milli>(time_since_last_cmd).count());
+            cmd_timeout_warned_ = true;
+        }
+    }
 }
 
 void LuciaController::send_velocity_command(const std::vector<double>& cmd)
@@ -131,9 +166,9 @@ void LuciaController::readEncoderAndUpdate(double dt, const rclcpp::Time& stamp)
     }
 
     // Debug log
-    count ++;
-    if(count % 10 == 0){
-        RCLCPP_DEBUG(this->get_logger(), "Encoder: vx=%f, vy=%f, w=%f, ta,=%f, dt=%f", vx, vy, w, ta, dt);
+    count++;
+    if (count % 10 == 0) {
+        RCLCPP_DEBUG(this->get_logger(), "Encoder: vx=%f, vy=%f, w=%f, ta=%f, dt=%f", vx, vy, w, ta, dt);
     }
 
     // Integrate odometry
@@ -187,27 +222,6 @@ void LuciaController::publishOdometry(const rclcpp::Time& stamp, double vx, doub
     odom.twist.twist.angular.x = 0.0;
     odom.twist.twist.angular.y = 0.0;
     odom.twist.twist.angular.z = vth;
-
-    // Covariance
-    // for (int i = 0; i < 36; i++) {
-    //     odom.pose.covariance[i] = 0.0;
-    //     odom.twist.covariance[i] = 0.0;
-    // }
-    // // Pose
-    // odom.pose.covariance[0] = 0.02;   // x
-    // odom.pose.covariance[7] = 0.02;   // y
-    // odom.pose.covariance[14] = 1e6;   // z
-    // odom.pose.covariance[21] = 1e6;   // roll
-    // odom.pose.covariance[28] = 1e6;   // pitch
-    // odom.pose.covariance[35] = 0.02;   // yaw
-
-    // // Twist
-    // odom.twist.covariance[0] = 0.01;  // vx
-    // odom.twist.covariance[7] = 0.01;  // vy
-    // odom.twist.covariance[14] = 1e6;  // vz
-    // odom.twist.covariance[21] = 1e6;  // vroll
-    // odom.twist.covariance[28] = 1e6;  // vpitch
-    // odom.twist.covariance[35] = 0.02;  // vth
 
     odom_publisher_->publish(odom);
 
