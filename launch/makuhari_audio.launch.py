@@ -16,7 +16,9 @@ def generate_launch_description():
     _sample_rate = LaunchConfiguration('sample_rate')
     _sample_format = LaunchConfiguration('sample_format')
     _ns = LaunchConfiguration('ns')
-    _audio_topic = LaunchConfiguration('audio_topic')
+    # _audio_topic = LaunchConfiguration('audio_topic')
+    _capture_topic = LaunchConfiguration('capture_topic')
+    _play_topic = LaunchConfiguration('play_topic')
 
     _src_launch_arg = DeclareLaunchArgument(
         'src',
@@ -60,10 +62,18 @@ def generate_launch_description():
     )
     _ns_launch_arg = DeclareLaunchArgument(
         'ns',
+        default_value='makuhari'
+    )
+    # _audio_topic_launch_arg = DeclareLaunchArgument(
+    #     'audio_topic',
+    #     default_value='audio'
+    # )
+    _capture_topic_launch_arg = DeclareLaunchArgument(
+        'capture_topic',
         default_value='audio'
     )
-    _audio_topic_launch_arg = DeclareLaunchArgument(
-        'audio_topic',
+    _play_topic_launch_arg = DeclareLaunchArgument(
+        'play_topic',
         default_value='audio'
     )
 
@@ -73,7 +83,7 @@ def generate_launch_description():
         executable='audio_capture_node',
         namespace=_ns,
         remappings=[
-            ('audio', _audio_topic),
+            ('audio', _capture_topic),
         ],
         parameters=[{
             'src': _src,
@@ -94,7 +104,7 @@ def generate_launch_description():
         executable='audio_play_node',
         namespace=_ns,
         remappings=[
-            ('audio', _audio_topic),
+            ('audio', _play_topic),
         ],
         parameters=[{
             'dst': _dst,
@@ -121,7 +131,8 @@ def generate_launch_description():
         _sample_rate_launch_arg,
         _sample_format_launch_arg,
         _ns_launch_arg,
-        _audio_topic_launch_arg,
+        _capture_topic_launch_arg,
+        _play_topic_launch_arg,
         _audio_capture_node,
         _audio_play_node,
     ])
