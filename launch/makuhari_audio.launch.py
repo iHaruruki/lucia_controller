@@ -8,6 +8,7 @@ def generate_launch_description():
     _src = LaunchConfiguration('src')
     _dst = LaunchConfiguration('dst')
     _device = LaunchConfiguration('device')
+    _do_timestamp = LaunchConfiguration('do_timestamp')
     _format = LaunchConfiguration('format')
     _bitrate = LaunchConfiguration('bitrate')
     _channels = LaunchConfiguration('channels')
@@ -28,6 +29,10 @@ def generate_launch_description():
     _device_launch_arg = DeclareLaunchArgument(
         'device',
         default_value=''
+    )
+    _do_timestamp_launch_arg = DeclareLaunchArgument(
+        'do_timestamp',
+        default_value='false'
     )
     _format_launch_arg = DeclareLaunchArgument(
         'format',
@@ -83,10 +88,32 @@ def generate_launch_description():
         }],
     )
 
+    _audio_play_node = Node(
+        package='audio_play',
+        name='audio_play',
+        executable='audio_play_node',
+        namespace=_ns,
+        remappings=[
+            ('audio', _audio_topic),
+        ],
+        parameters=[{
+            'dst': _dst,
+            'device': _device,
+            'do_timestamp': _do_timestamp,
+            'format': _format,
+            'bitrate': _bitrate,
+            'channels': _channels,
+            'depth': _depth,
+            'sample_rate': _sample_rate,
+            'sample_format': _sample_format,
+        }],
+    )
+
     return LaunchDescription([
         _src_launch_arg,
         _dst_launch_arg,
         _device_launch_arg,
+        _do_timestamp_launch_arg,
         _format_launch_arg,
         _bitrate_launch_arg,
         _channels_launch_arg,
@@ -96,4 +123,5 @@ def generate_launch_description():
         _ns_launch_arg,
         _audio_topic_launch_arg,
         _audio_capture_node,
+        _audio_play_node,
     ])
