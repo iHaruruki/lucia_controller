@@ -60,7 +60,7 @@ def generate_launch_description():
     )
     declare_color_fps = DeclareLaunchArgument(
         'color_fps',
-        default_value='30'
+        default_value='15'
     )
     declare_enable_color = DeclareLaunchArgument(
         'enable_color',
@@ -88,7 +88,7 @@ def generate_launch_description():
     )
     declare_depth_fps = DeclareLaunchArgument(
         'depth_fps',
-        default_value='30'
+        default_value='15'
     )
     declare_enable_depth = DeclareLaunchArgument(
         'enable_depth',
@@ -116,7 +116,7 @@ def generate_launch_description():
     )
     declare_ir_fps = DeclareLaunchArgument(
         'ir_fps',
-        default_value='30'
+        default_value='15'
     )
     declare_enable_ir = DeclareLaunchArgument(
         'enable_ir',
