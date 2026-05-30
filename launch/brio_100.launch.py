@@ -7,7 +7,51 @@ from ament_index_python.packages import get_package_share_directory
 from launch_ros.actions import Node
 
 def generate_launch_description():
+    # 引数の宣言
+    declare_video_device_arg = DeclareLaunchArgument(
+        'video_device',
+        default_value='/dev/video0',
+        description='Video device path'
+    )
+    
+    declare_framerate_arg = DeclareLaunchArgument(
+        'framerate',
+        default_value='15.0',
+        description='Camera framerate'
+    )
+    
+    declare_exposure_arg = DeclareLaunchArgument(
+        'exposure',
+        default_value='100',
+        description='Camera exposure'
+    )
+    
+    declare_brightness_arg = DeclareLaunchArgument(
+        'brightness',
+        default_value='-1',
+        description='Camera brightness'
+    )
+    
+    declare_white_balance_arg = DeclareLaunchArgument(
+        'white_balance',
+        default_value='4000',
+        description='Camera white balance'
+    )
+    
+    # LaunchConfiguration で引数を参照
+    video_device = LaunchConfiguration('video_device')
+    framerate = LaunchConfiguration('framerate')
+    exposure = LaunchConfiguration('exposure')
+    brightness = LaunchConfiguration('brightness')
+    white_balance = LaunchConfiguration('white_balance')
+    
     return LaunchDescription([
+        declare_video_device_arg,
+        declare_framerate_arg,
+        declare_exposure_arg,
+        declare_brightness_arg,
+        declare_white_balance_arg,
+        
         Node(
             package='usb_cam',
             executable='usb_cam_node_exe',
@@ -15,26 +59,25 @@ def generate_launch_description():
             parameters=[{
                 'auto_white_balance': True,
                 'autoexposure': True,
-                'autofocus': True, # default: False
+                'autofocus': True,
                 'av_device_format': 'YUV422P',
-                'brightness': -1,
+                'brightness': brightness,
                 'camera_info_url': 'file://' + get_package_share_directory('lucia_controller') + '/config/brio_100.yaml',
                 'camera_name': 'brio_100',
                 'contrast': -1,
-                'exposure': 100,
+                'exposure': exposure,
                 'focus': -1,
                 'frame_id': 'brio_100_link',
-                'framerate': 15.0,
+                'framerate': framerate,
                 'gain': -1,
                 'io_method': 'mmap',
                 'pixel_format': 'yuyv2rgb',
                 'saturation': -1,
                 'sharpness': -1,
                 'use_sim_time': False,
-                'video_device': '/dev/video0',
-                'white_balance': 4000,
+                'video_device': video_device,
+                'white_balance': white_balance,
                 'image_raw.ffmpeg.encoder.ffmpeg.encoder': 'h264',
-                #'image_raw.ffmpeg.encoder.ffmpeg.gop_size': 15,
             }],
             remappings=[
                 ('/camera_info', '/brio_100/camera_info'),
@@ -45,42 +88,4 @@ def generate_launch_description():
                 ('/image_raw/ffmpeg', '/brio_100/image_raw/ffmpeg'),
             ],
         ),
-
     ])
-
-# param list
-
-# /usb_cam:
-#   auto_white_balance
-#   autoexposure
-#   autofocus
-#   av_device_format
-#   brightness
-#   camera_info_url
-#   camera_name
-#   contrast
-#   exposure
-#   focus
-#   frame_id
-#   framerate
-#   gain
-#   image_height
-#   image_raw.enable_pub_plugins
-#   image_raw.format
-#   image_raw.jpeg_quality
-#   image_raw.png_level
-#   image_raw.tiff.res_unit
-#   image_raw.tiff.xdpi
-#   image_raw.tiff.ydpi
-#   image_width
-#   io_method
-#   pixel_format
-#   qos_overrides./parameter_events.publisher.depth
-#   qos_overrides./parameter_events.publisher.durability
-#   qos_overrides./parameter_events.publisher.history
-#   qos_overrides./parameter_events.publisher.reliability
-#   saturation
-#   sharpness
-#   use_sim_time
-#   video_device
-#   white_balance
