@@ -90,7 +90,7 @@ private:
     // SQUARE button - publish reject_nav_vel = false
     if (msg->buttons[BUTTON_SQUARE] == 1) {
       publishRejectNavVel(false);
-      RCLCPP_DEBUG(this->get_logger(), "Resume navigation enabled");
+      RCLCPP_INFO(this->get_logger(), "Resume navigation enabled");
     }
     
     // Update speed multiplier based on button presses
