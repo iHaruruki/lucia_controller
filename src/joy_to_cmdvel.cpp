@@ -1,6 +1,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/joy.hpp"
 #include "geometry_msgs/msg/twist.hpp"
+#include "std_msgs/msg/bool.hpp"
 
 class JoyCmdVelNode : public rclcpp::Node {
 public:
@@ -26,6 +27,7 @@ public:
       "/joy", 10, std::bind(&JoyCmdVelNode::joyCallback, this, std::placeholders::_1));
     
     cmd_vel_publisher_ = this->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);
+    reject_nav_vel_publisher_ = this->create_publisher<std_msgs::msg::Bool>("/reject_nav_vel", 10);
     
     RCLCPP_INFO(this->get_logger(), "Joy to Cmd_vel node started");
     RCLCPP_INFO(this->get_logger(), "linear_x_base: %.2f m/s, angular_x_base: %.2f rad/s", linear_x_base_, angular_z_base_);
@@ -59,6 +61,7 @@ private:
   
   rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joy_subscriber_;
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_publisher_;
+  rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr reject_nav_vel_publisher_;
   
   double linear_x_base_;
   double linear_y_base_;
@@ -71,16 +74,23 @@ private:
 
   void joyCallback(const sensor_msgs::msg::Joy::SharedPtr msg) {
     // Check array sizes
-    if (msg->buttons.size() < 10 || msg->axes.size() < 8) {
+    if (msg->buttons.size() < 11 || msg->axes.size() < 8) {
       RCLCPP_WARN(this->get_logger(), "Incomplete joy message received");
       return;
     }
     
-    // Emergency stop (PlayStation button)
+    // Emergency stop (PlayStation button) - publish reject_nav_vel = true
     if (msg->buttons[BUTTON_PS] == 1) {
       publishTwist(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+      publishRejectNavVel(true);
       RCLCPP_INFO(this->get_logger(), "Emergency stop activated!");
       return;
+    }
+    
+    // SQUARE button - publish reject_nav_vel = false
+    if (msg->buttons[BUTTON_SQUARE] == 1) {
+      publishRejectNavVel(false);
+      RCLCPP_DEBUG(this->get_logger(), "Resume navigation enabled");
     }
     
     // Update speed multiplier based on button presses
@@ -143,6 +153,13 @@ private:
     twist_msg->angular.z = angular_z;
     
     cmd_vel_publisher_->publish(std::move(twist_msg));
+  }
+
+  void publishRejectNavVel(bool value) {
+    auto bool_msg = std::make_unique<std_msgs::msg::Bool>();
+    bool_msg->data = value;
+    reject_nav_vel_publisher_->publish(std::move(bool_msg));
+    RCLCPP_DEBUG(this->get_logger(), "Published /reject_nav_vel: %s", value ? "true" : "false");
   }
 };
 
