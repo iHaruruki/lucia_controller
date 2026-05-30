@@ -96,10 +96,13 @@ private:
     // Update speed multiplier based on button presses
     if (msg->buttons[BUTTON_TRIANGLE] == 1) {
       speed_multiplier_ = 1.0;  // 1x speed
+      RCLCPP_INFO(this->get_logger(), "1x speed");
     } else if (msg->buttons[BUTTON_CIRCLE] == 1) {
       speed_multiplier_ = 2.0;  // 2x speed
+      RCLCPP_INFO(this->get_logger(), "2x speed");
     } else if (msg->buttons[BUTTON_CROSS] == 1) {
       speed_multiplier_ = 3.0;  // 3x speed
+      RCLCPP_INFO(this->get_logger(), "3x speed");
     }
     
     double linear_x = 0.0;
