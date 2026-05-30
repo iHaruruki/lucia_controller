@@ -3,11 +3,11 @@ from launch.substitutions import PathJoinSubstitution
 from launch.actions import DeclareLaunchArgument
 from launch_ros.substitutions import FindPackageShare
 from launch.substitutions import LaunchConfiguration
+from ament_index_python.packages import get_package_share_directory
 from launch_ros.actions import Node
 
 def generate_launch_description():
     return LaunchDescription([
-        # Twist Mux node
         Node(
             package='usb_cam',
             executable='usb_cam_node_exe',
@@ -18,7 +18,7 @@ def generate_launch_description():
                 'autofocus': True, # default: False
                 'av_device_format': 'YUV422P',
                 'brightness': -1,
-                # 'camera_info_url':
+                'camera_info_url': 'file://' + get_package_share_directory('lucia_controller') + '/config/brio_100.yaml',
                 'camera_name': 'brio_100',
                 'contrast': -1,
                 'exposure': 100,
@@ -33,6 +33,8 @@ def generate_launch_description():
                 'use_sim_time': False,
                 'video_device': '/dev/video0',
                 'white_balance': 4000,
+                'image_raw.ffmpeg.encoder.ffmpeg.encoder': 'h264',
+                #'image_raw.ffmpeg.encoder.ffmpeg.gop_size': 15,
             }],
             remappings=[
                 ('/camera_info', '/brio_100/camera_info'),
@@ -40,8 +42,10 @@ def generate_launch_description():
                 ('/image_raw/compressed', '/brio_100/image_raw/compressed'),
                 ('/image_raw/compressedDepth', '/brio_100/image_raw/compressedDepth'),
                 ('/image_raw/theora', '/brio_100/image_raw/theora'),
+                ('/image_raw/ffmpeg', '/brio_100/image_raw/ffmpeg'),
             ],
         ),
+
     ])
 
 # param list
