@@ -20,3 +20,7 @@ ros2 topic pub /reject_makuhari_vel std_msgs/msg/Bool "{data: true}" --once
 ```bash
 ros2 topic pub /reject_makuhari_vel std_msgs/msg/Bool "{data: false}" --once 
 ```
+
+### Dualshock4 で`nav_vel`を制御する
+自律移動解除： PS ボタン
+自律移動に復帰：四角形ボタン
