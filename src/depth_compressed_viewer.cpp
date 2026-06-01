@@ -6,6 +6,7 @@
 #include <iostream>
 #include <map>
 #include <algorithm>
+#include <cstring>
 
 class CompressedDepthImageViewerNode : public rclcpp::Node
 {
@@ -86,48 +87,48 @@ private:
   cv::Mat current_depth_raw_;
   int frame_count_ = 0;
 
-  // Decode ROS2 compressedDepth format using cv_bridge
-  cv::Mat decodeDepthImage(const sensor_msgs::msg::CompressedImage::SharedPtr& msg)
+  // Decode ROS2 compressedDepth format
+  // compressedDepth format: [header with dimensions][PNG compressed depth data]
+  cv::Mat decodeCompressedDepth(const sensor_msgs::msg::CompressedImage::SharedPtr& msg)
   {
     try
     {
-      // Use cv_bridge to decompress the depth image
-      // The compressedDepth format is handled by cv_bridge
-      cv_bridge::CvImagePtr cv_ptr;
+      // compressedDepth format has 8-byte header: [4 bytes float: depth_max][4 bytes: padding]
+      // OR some implementations use [width][height][depth_data]
+      // The actual PNG data follows after the header
       
-      try
+      if (msg->data.size() < 12)
       {
-        cv_ptr = cv_bridge::toCvCopy(msg, msg->format);
-      }
-      catch (cv_bridge::Exception& e)
-      {
-        RCLCPP_ERROR(this->get_logger(), "cv_bridge exception: %s", e.what());
-        
-        // Fallback: try to decompress as generic compressed image
-        try
-        {
-          cv_ptr = cv_bridge::toCvCopy(msg, "");
-        }
-        catch (cv_bridge::Exception& e2)
-        {
-          RCLCPP_ERROR(this->get_logger(), "cv_bridge fallback exception: %s", e2.what());
-          return cv::Mat();
-        }
-      }
-
-      if (!cv_ptr || cv_ptr->image.empty())
-      {
-        RCLCPP_WARN(this->get_logger(), 
-          "Failed to decode compressed depth image. Format: %s, Data size: %zu bytes",
-          msg->format.c_str(), msg->data.size());
+        RCLCPP_WARN(this->get_logger(), "Compressed depth data too small: %zu bytes", msg->data.size());
         return cv::Mat();
       }
 
-      return cv_ptr->image.clone();
+      // Skip first 8 bytes (header) and try to decode PNG
+      std::vector<uint8_t> png_data(msg->data.begin() + 8, msg->data.end());
+      cv::Mat decoded = cv::imdecode(png_data, cv::IMREAD_ANYDEPTH | cv::IMREAD_GRAYSCALE);
+
+      if (!decoded.empty())
+      {
+        return decoded;
+      }
+
+      // Fallback: try without skipping header
+      decoded = cv::imdecode(std::vector<uint8_t>(msg->data.begin(), msg->data.end()), 
+                             cv::IMREAD_ANYDEPTH | cv::IMREAD_GRAYSCALE);
+
+      if (!decoded.empty())
+      {
+        return decoded;
+      }
+
+      RCLCPP_WARN(this->get_logger(), 
+        "Failed to decode compressed depth image. Format: %s, Data size: %zu bytes",
+        msg->format.c_str(), msg->data.size());
+      return cv::Mat();
     }
     catch (const std::exception& e)
     {
-      RCLCPP_ERROR(this->get_logger(), "Error decoding depth image: %s", e.what());
+      RCLCPP_ERROR(this->get_logger(), "Error decoding compressed depth: %s", e.what());
       return cv::Mat();
     }
   }
@@ -253,7 +254,7 @@ private:
     try
     {
       // Decode compressed depth image
-      cv::Mat depth_raw = decodeDepthImage(msg);
+      cv::Mat depth_raw = decodeCompressedDepth(msg);
 
       if (depth_raw.empty())
       {
@@ -263,6 +264,10 @@ private:
       // Store raw depth image
       current_depth_raw_ = depth_raw.clone();
       frame_count_++;
+
+      RCLCPP_DEBUG(this->get_logger(), 
+        "Successfully decoded depth frame %d: %dx%d, type: %d",
+        frame_count_, depth_raw.cols, depth_raw.rows, depth_raw.type());
 
       // Process depth image (normalize and apply colormap)
       cv::Mat display_image = processDepthImage(depth_raw);
