@@ -20,6 +20,9 @@ find_package(nav_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
+find_package(cv_bridge REQUIRED)
+find_package(OpenCV REQUIRED)
+find_package(PkgConfig REQUIRED)
 find_package(YARP REQUIRED)
 
 include_directories(
@@ -52,6 +55,9 @@ ament_target_dependencies(joy_to_cmdvel_node rclcpp geometry_msgs sensor_msgs)
 add_executable(lucia_collision_monitor_node src/collision_monitor.cpp)
 ament_target_dependencies(lucia_collision_monitor_node rclcpp std_msgs sensor_msgs geometry_msgs visualization_msgs)
 
+add_executable(color_compressed_viewr_node src/color_compressed_viewer.cpp)
+ament_target_dependencies(color_compressed_viewr_node rclcpp std_msgs sensor_msgs cv_bridge OpenCV)
+
 install(TARGETS
   lucia_controller_node
   lucia_minimal_controller_node
@@ -59,6 +65,7 @@ install(TARGETS
   lucia_velocity_smoother_node
   joy_to_cmdvel_node
   lucia_collision_monitor_node
+  color_compressed_viewr_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
