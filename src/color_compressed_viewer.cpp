@@ -16,7 +16,7 @@ public:
     this->declare_parameter<int>("window_width", 640);
     this->declare_parameter<int>("window_height", 480);
     this->declare_parameter<int>("window_type", cv::WINDOW_NORMAL);
-    this->declare_parameter<std::string>("window_name", "Image Viwer");
+    this->declare_parameter<std::string>("window_name", "Color Image Viwer");
     this->declare_parameter<std::string>("image_format", "auto");  // auto, jpeg, png, webp, bmp
     this->declare_parameter<bool>("display_info", false);
     this->declare_parameter<bool>("record_frames", false);
