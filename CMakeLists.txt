@@ -13,13 +13,14 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(message_filters REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(visualization_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(YARP REQUIRED)
-find_package(message_filters REQUIRED)
-find_package(sensor_msgs REQUIRED)
 
 include_directories(
   include
@@ -48,12 +49,16 @@ ament_target_dependencies(lucia_velocity_smoother_node rclcpp geometry_msgs nav_
 add_executable(joy_to_cmdvel_node src/joy_to_cmdvel.cpp)
 ament_target_dependencies(joy_to_cmdvel_node rclcpp geometry_msgs sensor_msgs)
 
+add_executable(lucia_collision_monitor_node src/collision_monitor.cpp)
+ament_target_dependencies(lucia_collision_monitor_node rclcpp std_msgs sensor_msgs geometry_msgs visualization_msgs)
+
 install(TARGETS
   lucia_controller_node
   lucia_minimal_controller_node
   lucia_trajectory_drawer_node
   lucia_velocity_smoother_node
   joy_to_cmdvel_node
+  lucia_collision_monitor_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
