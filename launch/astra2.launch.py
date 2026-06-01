@@ -12,7 +12,7 @@ import os
 def generate_launch_description():
     # Declare arguments
     args = [
-        DeclareLaunchArgument('camera_name', default_value='lucia_depth_camera'),
+        DeclareLaunchArgument('camera_name', default_value='lucia_astra_camera'),
         DeclareLaunchArgument('depth_registration', default_value='true'),
         DeclareLaunchArgument('serial_number', default_value=''),
         DeclareLaunchArgument('usb_port', default_value=''),
@@ -24,8 +24,8 @@ def generate_launch_description():
         DeclareLaunchArgument('cloud_frame_id', default_value=''),
         DeclareLaunchArgument('point_cloud_qos', default_value='default'),
         DeclareLaunchArgument('connection_delay', default_value='100'),
-        DeclareLaunchArgument('color_width', default_value='1280'),
-        DeclareLaunchArgument('color_height', default_value='720'),
+        DeclareLaunchArgument('color_width', default_value='640'),
+        DeclareLaunchArgument('color_height', default_value='360'),
         DeclareLaunchArgument('color_fps', default_value='15'),
         DeclareLaunchArgument('color_format', default_value='MJPG'),
         DeclareLaunchArgument('enable_color', default_value='true'),
