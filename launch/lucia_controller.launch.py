@@ -47,4 +47,17 @@ def generate_launch_description():
             ],
             output='screen',
         ),
+
+        # lucia_collision_monitor_node
+        Node(
+            package='lucia_controller',
+            executable='lucia_collision_monitor_node',
+            name='lucia_collision_monitor_node',
+            # parameters=[
+            #     {
+            #         'collision_threshold': '0.5f',
+            #     }
+            # ],
+            output='screen',
+        ),
     ])
