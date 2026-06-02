@@ -2,6 +2,8 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 CollisionMonitor::CollisionMonitor()
     : Node("collision_monitor"),
@@ -293,19 +295,13 @@ void CollisionMonitor::publish_visualization_markers()
     auto now = this->get_clock()->now();
 
     const char* dir_str[] = {"FRONT", "BACK", "LEFT", "RIGHT"};
-    const float angles[] = {0.0f, M_PI, M_PI / 2.0f, -M_PI / 2.0f};
-    const float colors[][3] = {
-        {1.0f, 0.0f, 0.0f},  // FRONT - Red
-        {0.0f, 0.0f, 1.0f},  // BACK - Blue
-        {1.0f, 1.0f, 0.0f},  // LEFT - Yellow
-        {1.0f, 0.5f, 0.0f}   // RIGHT - Orange
-    };
+    const float robot_radius = 0.15f;  // ロボット半径（メートル）
 
     for (size_t i = 0; i < collision_zones_.size(); ++i) {
         const auto& zone = collision_zones_[i];
         if (zone.scan_count == 0) continue;
 
-        // Create distance cylinder marker
+        // Create collision zone cylinder marker (円柱形に合わせた側面)
         visualization_msgs::msg::Marker marker;
         marker.header.frame_id = frame_id_;
         marker.header.stamp = now;
@@ -314,23 +310,59 @@ void CollisionMonitor::publish_visualization_markers()
         marker.type = visualization_msgs::msg::Marker::CYLINDER;
         marker.action = visualization_msgs::msg::Marker::ADD;
 
-        // Position at the direction angle and distance
-        float distance = zone.min_distance;
-        marker.pose.position.x = distance * std::cos(angles[i]);
-        marker.pose.position.y = distance * std::sin(angles[i]);
-        marker.pose.position.z = 0.0f;
-        marker.pose.orientation.w = 1.0f;
+        // tf2::Quaternion をスイッチ文の外で宣言
+        tf2::Quaternion q;
+        float distance_offset = zone.min_distance / 2.0f;
 
-        // Size
-        marker.scale.x = 0.1f;  // diameter
-        marker.scale.y = 0.1f;
-        marker.scale.z = 0.05f;
+        // 各方向に円柱を配置
+        switch (zone.direction) {
+            case Direction::FRONT:
+                // 前方：X軸正方向
+                marker.pose.position.x = robot_radius + distance_offset;
+                marker.pose.position.y = 0.0f;
+                marker.pose.position.z = 0.0f;
+                q.setRPY(0.0, M_PI / 2.0, 0.0);
+                marker.pose.orientation = tf2::toMsg(q);
+                break;
 
-        // Color based on collision state
+            case Direction::BACK:
+                // 背後：X軸負方向
+                marker.pose.position.x = -(robot_radius + distance_offset);
+                marker.pose.position.y = 0.0f;
+                marker.pose.position.z = 0.0f;
+                q.setRPY(0.0, M_PI / 2.0, 0.0);
+                marker.pose.orientation = tf2::toMsg(q);
+                break;
+
+            case Direction::LEFT:
+                // 左側：Y軸正方向
+                marker.pose.position.x = 0.0f;
+                marker.pose.position.y = robot_radius + distance_offset;
+                marker.pose.position.z = 0.0f;
+                q.setRPY(M_PI / 2.0, 0.0, 0.0);
+                marker.pose.orientation = tf2::toMsg(q);
+                break;
+
+            case Direction::RIGHT:
+                // 右側：Y軸負方向
+                marker.pose.position.x = 0.0f;
+                marker.pose.position.y = -(robot_radius + distance_offset);
+                marker.pose.position.z = 0.0f;
+                q.setRPY(M_PI / 2.0, 0.0, 0.0);
+                marker.pose.orientation = tf2::toMsg(q);
+                break;
+        }
+
+        // スケール設定：円柱形状
+        marker.scale.x = 0.3f;   // 直径
+        marker.scale.y = 0.3f;   // 直径
+        marker.scale.z = 0.5f;   // 高さ
+
+        // 色設定：衝突状態に応じて変更
         if (zone.is_collision) {
-            set_marker_color(marker, colors[i][0], colors[i][1], colors[i][2], 0.8f);
+            set_marker_color(marker, 1.0f, 0.0f, 0.0f, 0.8f);  // 赤：衝突
         } else {
-            set_marker_color(marker, colors[i][0], colors[i][1], colors[i][2], 0.4f);
+            set_marker_color(marker, 0.0f, 1.0f, 0.0f, 0.5f);  // 緑：安全
         }
 
         marker.lifetime = rclcpp::Duration::from_seconds(0.5);
@@ -345,20 +377,37 @@ void CollisionMonitor::publish_visualization_markers()
         text_marker.type = visualization_msgs::msg::Marker::TEXT_VIEW_FACING;
         text_marker.action = visualization_msgs::msg::Marker::ADD;
 
-        text_marker.pose.position.x = distance * std::cos(angles[i]);
-        text_marker.pose.position.y = distance * std::sin(angles[i]);
-        text_marker.pose.position.z = 0.15f;
+        // テキスト位置
+        switch (zone.direction) {
+            case Direction::FRONT:
+                text_marker.pose.position.x = robot_radius + distance_offset;
+                text_marker.pose.position.y = 0.0f;
+                break;
+            case Direction::BACK:
+                text_marker.pose.position.x = -(robot_radius + distance_offset);
+                text_marker.pose.position.y = 0.0f;
+                break;
+            case Direction::LEFT:
+                text_marker.pose.position.x = 0.0f;
+                text_marker.pose.position.y = robot_radius + distance_offset;
+                break;
+            case Direction::RIGHT:
+                text_marker.pose.position.x = 0.0f;
+                text_marker.pose.position.y = -(robot_radius + distance_offset);
+                break;
+        }
+        text_marker.pose.position.z = 0.25f;
         text_marker.pose.orientation.w = 1.0f;
 
-        text_marker.scale.z = 0.1f;  // Text height
+        text_marker.scale.z = 0.1f;  // テキスト高さ
         text_marker.text = std::string(dir_str[i]) + "\n" + 
-                          std::to_string(static_cast<int>(distance * 100)) + "cm";
+                          std::to_string(static_cast<int>(zone.min_distance * 100)) + "cm";
         
         set_marker_color(text_marker, 1.0f, 1.0f, 1.0f, 1.0f);
         text_marker.lifetime = rclcpp::Duration::from_seconds(0.5);
         marker_array.markers.push_back(text_marker);
 
-        // Create collision zone range indicator (ring)
+        // Create collision threshold ring marker
         visualization_msgs::msg::Marker ring_marker;
         ring_marker.header.frame_id = frame_id_;
         ring_marker.header.stamp = now;
@@ -367,10 +416,31 @@ void CollisionMonitor::publish_visualization_markers()
         ring_marker.type = visualization_msgs::msg::Marker::CYLINDER;
         ring_marker.action = visualization_msgs::msg::Marker::ADD;
 
-        ring_marker.pose.position.x = collision_threshold_ * std::cos(angles[i]);
-        ring_marker.pose.position.y = collision_threshold_ * std::sin(angles[i]);
+        // 閾値位置
+        switch (zone.direction) {
+            case Direction::FRONT:
+                ring_marker.pose.position.x = robot_radius + collision_threshold_ / 2.0f;
+                ring_marker.pose.position.y = 0.0f;
+                q.setRPY(0.0, M_PI / 2.0, 0.0);
+                break;
+            case Direction::BACK:
+                ring_marker.pose.position.x = -(robot_radius + collision_threshold_ / 2.0f);
+                ring_marker.pose.position.y = 0.0f;
+                q.setRPY(0.0, M_PI / 2.0, 0.0);
+                break;
+            case Direction::LEFT:
+                ring_marker.pose.position.x = 0.0f;
+                ring_marker.pose.position.y = robot_radius + collision_threshold_ / 2.0f;
+                q.setRPY(M_PI / 2.0, 0.0, 0.0);
+                break;
+            case Direction::RIGHT:
+                ring_marker.pose.position.x = 0.0f;
+                ring_marker.pose.position.y = -(robot_radius + collision_threshold_ / 2.0f);
+                q.setRPY(M_PI / 2.0, 0.0, 0.0);
+                break;
+        }
         ring_marker.pose.position.z = 0.0f;
-        ring_marker.pose.orientation.w = 1.0f;
+        ring_marker.pose.orientation = tf2::toMsg(q);
 
         ring_marker.scale.x = 0.05f;
         ring_marker.scale.y = 0.05f;

@@ -8,9 +8,13 @@
 #include "std_msgs/msg/float32.hpp"
 #include "visualization_msgs/msg/marker.hpp"
 #include "visualization_msgs/msg/marker_array.hpp"
+#include "tf2/LinearMath/Quaternion.h"
+#include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 #include <array>
 #include <cmath>
 #include <mutex>
+#include <limits>
+#include <memory>
 
 // Direction enumeration for collision zones
 enum class Direction {

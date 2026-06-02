@@ -53,7 +53,7 @@ add_executable(joy_to_cmdvel_node src/joy_to_cmdvel.cpp)
 ament_target_dependencies(joy_to_cmdvel_node rclcpp geometry_msgs sensor_msgs)
 
 add_executable(lucia_collision_monitor_node src/collision_monitor.cpp)
-ament_target_dependencies(lucia_collision_monitor_node rclcpp std_msgs sensor_msgs geometry_msgs visualization_msgs)
+ament_target_dependencies(lucia_collision_monitor_node rclcpp std_msgs sensor_msgs geometry_msgs visualization_msgs tf2_geometry_msgs)
 
 add_executable(color_compressed_viewr_node src/color_compressed_viewer.cpp)
 ament_target_dependencies(color_compressed_viewr_node rclcpp std_msgs sensor_msgs cv_bridge OpenCV)
