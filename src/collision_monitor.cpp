@@ -1,110 +1,177 @@
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/laser_scan.hpp>
+#include <std_msgs/msg/string.hpp>
 #include <cmath>
+#include <iomanip>
+#include <sstream>
 
-class ScanFrontFilterNode : public rclcpp::Node {
+class CollisionDetectorNode : public rclcpp::Node {
 public:
-    ScanFrontFilterNode() : Node("scan_front_filter") {
+    CollisionDetectorNode() : Node("collision_detector") {
         // /scan トピックを購読
         subscription_ = this->create_subscription<sensor_msgs::msg::LaserScan>(
             "/scan", 10,
-            std::bind(&ScanFrontFilterNode::scan_callback, this, std::placeholders::_1));
+            std::bind(&CollisionDetectorNode::scan_callback, this, std::placeholders::_1));
         
-        // /scan/rviz トピックを配信
-        publisher_ = this->create_publisher<sensor_msgs::msg::LaserScan>("/scan/rviz", 10);
+        // 衝突状態を配信
+        publisher_ = this->create_publisher<std_msgs::msg::String>("/collision_status", 10);
         
-        // RCLCPP_INFO(this->get_logger(), 
-        //     "Scan Front Filter Node started.\n"
-        //     "Subscribing to: /scan\n"
-        //     "Publishing to: /scan/rviz\n"
-        //     "Filter: Front direction only (-45° to +45°)");
+        RCLCPP_INFO(this->get_logger(), 
+            "Collision Detector Node started.\n"
+            "Robot Radius: %.2f m\n"
+            "Collision Threshold: %.2f m\n"
+            "Subscribing to: /scan\n"
+            "Publishing to: /collision_status",
+            ROBOT_RADIUS, COLLISION_THRESHOLD);
     }
 
 private:
+    struct DirectionData {
+        std::string name;
+        double angle_min;
+        double angle_max;
+        float min_distance = std::numeric_limits<float>::max();
+        size_t critical_count = 0;
+        size_t total_count = 0;
+        bool is_colliding = false;
+        std::string status_icon;
+    };
+
     rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr subscription_;
-    rclcpp::Publisher<sensor_msgs::msg::LaserScan>::SharedPtr publisher_;
+    rclcpp::Publisher<std_msgs::msg::String>::SharedPtr publisher_;
     
-    // 正面方向の角度範囲（ラジアン）
-    static constexpr double FRONT_ANGLE_MIN = M_PI / 4.0;  // -45°
-    static constexpr double FRONT_ANGLE_MAX = M_PI*3 / 4.0;   // +45°
+    // パラメータ
+    static constexpr float ROBOT_RADIUS = 0.25f;           // ロボット半径 (m)
+    static constexpr float COLLISION_THRESHOLD = 0.3f;     // 衝突判定閾値 (m)
+    static constexpr float WARNING_THRESHOLD = 0.5f;       // 警告閾値 (m)
+    
+    bool first_message = true;
 
     void scan_callback(const sensor_msgs::msg::LaserScan::SharedPtr msg) {
-        // フィルター済みのLaserScanメッセージを作成
-        auto filtered_msg = std::make_shared<sensor_msgs::msg::LaserScan>();
-        
-        // ヘッダー情報をコピー
-        filtered_msg->header = msg->header;
-        filtered_msg->header.frame_id = msg->header.frame_id;
-        
-        // スキャン設定をコピー（角度範囲は正面方向に調整）
-        filtered_msg->angle_min = FRONT_ANGLE_MIN;
-        filtered_msg->angle_max = FRONT_ANGLE_MAX;
-        filtered_msg->angle_increment = msg->angle_increment;
-        filtered_msg->time_increment = msg->time_increment;
-        filtered_msg->scan_time = msg->scan_time;
-        filtered_msg->range_min = msg->range_min;
-        filtered_msg->range_max = msg->range_max;
-        
-        // 正面方向のデータのみを抽出
-        std::vector<float> front_ranges;
-        size_t front_count = 0;
-        
+        // 4方向のデータを定義
+        DirectionData directions[4] = {
+            {"FRONT", -M_PI/4.0, M_PI/4.0, std::numeric_limits<float>::max(), 0, 0, false, ""},
+            {"RIGHT", -3*M_PI/4.0, -M_PI/4.0, std::numeric_limits<float>::max(), 0, 0, false, ""},
+            {"BACK", 3*M_PI/4.0, -3*M_PI/4.0, std::numeric_limits<float>::max(), 0, 0, false, ""},
+            {"LEFT", M_PI/4.0, 3*M_PI/4.0, std::numeric_limits<float>::max(), 0, 0, false, ""}
+        };
+
+        // スキャンデータを各方向に分類
         for (size_t i = 0; i < msg->ranges.size(); i++) {
-            // i番目の測定点の角度を計算
             double angle = msg->angle_min + i * msg->angle_increment;
-            
-            // 角度が正面方向範囲内にあるかチェック
-            if (angle >= FRONT_ANGLE_MIN && angle <= FRONT_ANGLE_MAX) {
-                front_ranges.push_back(msg->ranges[i]);
-                front_count++;
+            float range = msg->ranges[i];
+
+            // 有効な距離値かチェック
+            if (range < msg->range_min || range > msg->range_max) {
+                continue;
+            }
+
+            // 各方向に該当するかチェック
+            for (int d = 0; d < 4; d++) {
+                if (is_angle_in_direction(angle, directions[d].angle_min, directions[d].angle_max)) {
+                    directions[d].total_count++;
+                    directions[d].min_distance = std::min(directions[d].min_distance, range);
+                    
+                    // 衝突判定
+                    if (range <= COLLISION_THRESHOLD) {
+                        directions[d].critical_count++;
+                        directions[d].is_colliding = true;
+                    }
+                }
             }
         }
-        
-        // フィルター済みのrangesをセット
-        filtered_msg->ranges = front_ranges;
-        
-        // intensitiesがある場合は空のまま（またはコピー可能）
-        filtered_msg->intensities.clear();
-        
-        // /scan/rviz トピックに配信
-        publisher_->publish(*filtered_msg);
-        
-        // ログ出力（最初のメッセージのみ詳細表示）
-        static bool first_message = true;
+
+        // 各方向のステータスアイコンを設定
+        for (int d = 0; d < 4; d++) {
+            if (directions[d].is_colliding) {
+                directions[d].status_icon = "✗ COLLISION";
+            } else if (directions[d].min_distance <= WARNING_THRESHOLD) {
+                directions[d].status_icon = "⚠ WARNING";
+            } else {
+                directions[d].status_icon = "✓ SAFE";
+            }
+        }
+
+        // 結果を出力・配信
+        print_and_publish_results(directions);
+    }
+
+    bool is_angle_in_direction(double angle, double min_angle, double max_angle) {
+        // BACK方向（±π をまたぐ）の特殊処理
+        if (min_angle > max_angle) {  // 3π/4 > -3π/4 のケース
+            return (angle >= min_angle || angle <= max_angle);
+        }
+        return (angle >= min_angle && angle <= max_angle);
+    }
+
+    void print_and_publish_results(DirectionData directions[]) {
+        std::stringstream ss;
+        ss << std::fixed << std::setprecision(2);
+
+        // ヘッダー
         if (first_message) {
-            RCLCPP_INFO(this->get_logger(),
-                "\n========== FRONT FILTER ANALYSIS ==========\n"
-                "Original scan: %zu measurements (-180° to +180°)\n"
-                "Filtered scan: %zu measurements (-45° to +45°)\n"
-                "Filtering rate: %.1f%%\n"
-                "Original angle_min: %.4f rad (%.1f°)\n"
-                "Original angle_max: %.4f rad (%.1f°)\n"
-                "Filtered angle_min: %.4f rad (%.1f°)\n"
-                "Filtered angle_max: %.4f rad (%.1f°)\n"
-                "Angle increment: %.6f rad (%.3f°)\n"
-                "Frame ID: %s\n"
-                "==========================================\n",
-                msg->ranges.size(),
-                front_count,
-                (front_count * 100.0) / msg->ranges.size(),
-                msg->angle_min, radians_to_degrees(msg->angle_min),
-                msg->angle_max, radians_to_degrees(msg->angle_max),
-                FRONT_ANGLE_MIN, radians_to_degrees(FRONT_ANGLE_MIN),
-                FRONT_ANGLE_MAX, radians_to_degrees(FRONT_ANGLE_MAX),
-                msg->angle_increment, radians_to_degrees(msg->angle_increment),
-                msg->header.frame_id.c_str());
+            ss << "\n" << std::string(70, '=') << "\n";
+            ss << "COLLISION DETECTION SYSTEM STARTED\n";
+            ss << "Robot Radius: " << ROBOT_RADIUS << " m\n";
+            ss << "Collision Threshold: " << COLLISION_THRESHOLD << " m\n";
+            ss << "Warning Threshold: " << WARNING_THRESHOLD << " m\n";
+            ss << std::string(70, '=') << "\n\n";
             first_message = false;
         }
-    }
-    
-    double radians_to_degrees(double radians) {
-        return radians * 180.0 / M_PI;
+
+        // 現在の状態を表示
+        ss << "\r";  // キャリッジリターン（上書き）
+        ss << "TIME: " << std::setw(6) << std::setfill('0') << (int)(rclcpp::Clock().now().seconds()) % 100000 << " | ";
+        
+        // 各方向の状態
+        for (int d = 0; d < 4; d++) {
+            ss << directions[d].name << ": " << directions[d].status_icon;
+            ss << " (" << directions[d].min_distance << "m)";
+            if (d < 3) ss << " | ";
+        }
+
+        // 詳細情報
+        ss << "\n";
+        ss << "───────────────────────────────────────────────────────────────────\n";
+        
+        bool any_collision = false;
+        for (int d = 0; d < 4; d++) {
+            ss << "  " << std::setw(5) << directions[d].name << ": ";
+            ss << std::setw(18) << directions[d].status_icon;
+            ss << " | Min: " << std::setw(5) << directions[d].min_distance << " m";
+            ss << " | Critical: " << std::setw(3) << directions[d].critical_count;
+            ss << "/" << std::setw(4) << directions[d].total_count;
+            
+            if (directions[d].is_colliding) {
+                any_collision = true;
+                ss << " ⚠ ALERT!";
+            }
+            ss << "\n";
+        }
+
+        ss << "───────────────────────────────────────────────────────────────────\n";
+        
+        // 総合判定
+        if (any_collision) {
+            ss << "OVERALL STATUS: ✗ COLLISION DETECTED - EMERGENCY STOP REQUIRED!\n";
+        } else {
+            ss << "OVERALL STATUS: ✓ SAFE - No collision detected\n";
+        }
+        ss << std::string(70, '=') << "\n";
+
+        // コンソール出力
+        RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 500, ss.str().c_str());
+
+        // /collision_status トピックに配信
+        auto msg = std_msgs::msg::String();
+        msg.data = ss.str();
+        publisher_->publish(msg);
     }
 };
 
 int main(int argc, char** argv) {
     rclcpp::init(argc, argv);
-    rclcpp::spin(std::make_shared<ScanFrontFilterNode>());
+    rclcpp::spin(std::make_shared<CollisionDetectorNode>());
     rclcpp::shutdown();
     return 0;
 }
