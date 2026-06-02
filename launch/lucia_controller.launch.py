@@ -30,7 +30,7 @@ def generate_launch_description():
                 'update_frequency': 30,
             }],
             remappings=[
-                ('/cmd_vel', '/twist_mux/cmd_vel')
+                ('/cmd_vel', '/collision_monitor/cmd_vel')
             ],
             output='screen',
         ),
@@ -49,15 +49,13 @@ def generate_launch_description():
         ),
 
         # lucia_collision_monitor_node
-        # Node(
-        #     package='lucia_controller',
-        #     executable='lucia_collision_monitor_node',
-        #     name='lucia_collision_monitor_node',
-        #     # parameters=[
-        #     #     {
-        #     #         'collision_threshold': '0.5f',
-        #     #     }
-        #     # ],
-        #     output='screen',
-        # ),
+        Node(
+            package='lucia_controller',
+            executable='lucia_collision_monitor_node',
+            name='lucia_collision_monitor_node',
+            remappings=[
+                ('/cmd_vel', '/twist_mux/cmd_vel')
+            ],
+            output='screen',
+        ),
     ])

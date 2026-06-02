@@ -21,7 +21,7 @@ public:
             std::bind(&SafeVelocityControllerNode::cmd_vel_callback, this, std::placeholders::_1));
         
         // /cmd_vel_safe トピックを配信
-        safe_velocity_publisher_ = this->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel_safe", 10);
+        safe_velocity_publisher_ = this->create_publisher<geometry_msgs::msg::Twist>("/collision_monitor/cmd_vel", 10);
         
         // 介入状態を配信
         intervention_publisher_ = this->create_publisher<std_msgs::msg::String>("/intervention_status", 10);
@@ -58,7 +58,7 @@ private:
     
     // パラメータ
     static constexpr float ROBOT_RADIUS = 0.25f;
-    static constexpr float COLLISION_THRESHOLD = 0.3f;
+    static constexpr float COLLISION_THRESHOLD = 0.4f;
     static constexpr float WARNING_THRESHOLD = 0.5f;
 
     void scan_callback(const sensor_msgs::msg::LaserScan::SharedPtr msg) {
