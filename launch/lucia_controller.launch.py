@@ -56,6 +56,7 @@ def generate_launch_description():
             remappings=[
                 ('/cmd_vel', '/twist_mux/cmd_vel')
             ],
+            # ros_arguments=['--log-level', 'debug'],
             output='screen',
         ),
     ])

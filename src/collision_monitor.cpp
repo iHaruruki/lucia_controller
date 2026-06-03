@@ -89,24 +89,28 @@ private:
                 collision_status_.front_min_dist = std::min(collision_status_.front_min_dist, range);
                 if (range <= COLLISION_THRESHOLD) {
                     collision_status_.front_collision = true;
+                    RCLCPP_INFO(this->get_logger(), "front_collision:TRUE");
                 }
             }
             else if (is_in_angle_range(angle, -3*M_PI/4.0, -M_PI/4.0)) {  // RIGHT
                 collision_status_.right_min_dist = std::min(collision_status_.right_min_dist, range);
                 if (range <= COLLISION_THRESHOLD) {
                     collision_status_.right_collision = true;
+                    RCLCPP_INFO(this->get_logger(), "right_collision:TRUE");
                 }
             }
             else if (is_in_angle_range(angle, 3*M_PI/4.0, -3*M_PI/4.0)) {  // BACK
                 collision_status_.back_min_dist = std::min(collision_status_.back_min_dist, range);
                 if (range <= COLLISION_THRESHOLD) {
                     collision_status_.back_collision = true;
+                    RCLCPP_INFO(this->get_logger(), "back_collision:TRUE");
                 }
             }
             else if (is_in_angle_range(angle, M_PI/4.0, 3*M_PI/4.0)) {  // LEFT
                 collision_status_.left_min_dist = std::min(collision_status_.left_min_dist, range);
                 if (range <= COLLISION_THRESHOLD) {
                     collision_status_.left_collision = true;
+                    RCLCPP_INFO(this->get_logger(), "left_collision:TRUE");
                 }
             }
         }
@@ -115,7 +119,6 @@ private:
     void cmd_vel_callback(const geometry_msgs::msg::Twist::SharedPtr msg) {
         std::lock_guard<std::mutex> lock(collision_mutex_);
         
-        // 安全な速度コマンドを作成
         auto safe_cmd = std::make_shared<geometry_msgs::msg::Twist>(*msg);
         
         std::stringstream intervention_log;
