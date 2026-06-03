@@ -33,14 +33,14 @@ def generate_launch_description():
 
     # パラメータファイルのパス設定（1台目）
     config_file_path_1st = os.path.join(
-        get_package_share_directory('urg_node2'),
+        get_package_share_directory('lucia_controller'),
         'config',
         'params_ether.yaml'
     )
 
     # パラメータファイルのパス設定（2台目）
     config_file_path_2nd = os.path.join(
-        get_package_share_directory('urg_node2'),
+        get_package_share_directory('lucia_controller'),
         'config',
         'params_ether_2nd.yaml'
     )
