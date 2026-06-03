@@ -17,7 +17,7 @@ public:
         
         // /cmd_vel トピックを購読
         cmd_vel_subscription_ = this->create_subscription<geometry_msgs::msg::Twist>(
-            "/joy_vel", 10,
+            "/cmd_vel", 10,
             std::bind(&SafeVelocityControllerNode::cmd_vel_callback, this, std::placeholders::_1));
         
         // /cmd_vel_safe トピックを配信
@@ -57,9 +57,9 @@ private:
     std::mutex collision_mutex_;
     
     // パラメータ
-    static constexpr float ROBOT_RADIUS = 0.25f;
-    static constexpr float COLLISION_THRESHOLD = 0.4f;
-    static constexpr float WARNING_THRESHOLD = 0.5f;
+    static constexpr float ROBOT_RADIUS = 0.3f;
+    static constexpr float COLLISION_THRESHOLD = 0.55f;
+    static constexpr float WARNING_THRESHOLD = 0.65f;
 
     void scan_callback(const sensor_msgs::msg::LaserScan::SharedPtr msg) {
         std::lock_guard<std::mutex> lock(collision_mutex_);
