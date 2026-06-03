@@ -31,7 +31,7 @@ public:
             "Robot Radius: %.2f m\n"
             "Collision Threshold: %.2f m\n"
             "Subscribing to: /scan, /cmd_vel\n"
-            "Publishing to: /cmd_vel_safe, /intervention_status",
+            "Publishing to: /collision_monitor/cmd_vel, /intervention_status",
             ROBOT_RADIUS, COLLISION_THRESHOLD);
     }
 
@@ -56,10 +56,12 @@ private:
     DirectionCollisionStatus collision_status_;
     std::mutex collision_mutex_;
     
+    bool cmd_vel_received_ = false;
+    
     // パラメータ
-    static constexpr float ROBOT_RADIUS = 0.3f;
-    static constexpr float COLLISION_THRESHOLD = 0.55f;
-    static constexpr float WARNING_THRESHOLD = 0.65f;
+    static constexpr float ROBOT_RADIUS = 0.25f;
+    static constexpr float COLLISION_THRESHOLD = 0.7f;
+    static constexpr float WARNING_THRESHOLD = 0.8f;
 
     void scan_callback(const sensor_msgs::msg::LaserScan::SharedPtr msg) {
         std::lock_guard<std::mutex> lock(collision_mutex_);
@@ -75,7 +77,13 @@ private:
         collision_status_.back_min_dist = std::numeric_limits<float>::max();
         collision_status_.left_min_dist = std::numeric_limits<float>::max();
 
+        RCLCPP_DEBUG(this->get_logger(),
+            "Scan received: ranges=%zu, angle_min=%.4f (%.1f°), angle_max=%.4f (%.1f°), angle_increment=%.4f",
+            msg->ranges.size(), msg->angle_min, msg->angle_min * 180 / M_PI, 
+            msg->angle_max, msg->angle_max * 180 / M_PI, msg->angle_increment);
+
         // スキャンデータを分析
+        int valid_count = 0;
         for (size_t i = 0; i < msg->ranges.size(); i++) {
             double angle = msg->angle_min + i * msg->angle_increment;
             float range = msg->ranges[i];
@@ -83,63 +91,82 @@ private:
             if (range < msg->range_min || range > msg->range_max) {
                 continue;
             }
+            valid_count++;
 
-            // 各方向に分類（角度範囲を正規化）
+            // 角度を正規化 (-π ~ π)
             double normalized_angle = normalize_angle(angle);
             
-            // FRONT: -45° ~ +45°
+            // FRONT: -π/4 ~ π/4 (−45° ~ 45°)
             if (normalized_angle >= -M_PI/4.0 && normalized_angle <= M_PI/4.0) {
                 collision_status_.front_min_dist = std::min(collision_status_.front_min_dist, range);
                 if (range <= COLLISION_THRESHOLD) {
                     collision_status_.front_collision = true;
                     RCLCPP_WARN(this->get_logger(), 
-                        "FRONT collision detected at angle %.2f rad, distance %.3f m", 
-                        normalized_angle, range);
+                        "[FRONT COLLISION] angle=%.3f rad (%.1f°), distance=%.3f m",
+                        normalized_angle, normalized_angle * 180 / M_PI, range);
                 }
             }
-            // LEFT: +45° ~ +135°
+            // LEFT: π/4 ~ 3π/4 (45° ~ 135°)
             else if (normalized_angle > M_PI/4.0 && normalized_angle <= 3*M_PI/4.0) {
                 collision_status_.left_min_dist = std::min(collision_status_.left_min_dist, range);
                 if (range <= COLLISION_THRESHOLD) {
                     collision_status_.left_collision = true;
                     RCLCPP_WARN(this->get_logger(), 
-                        "LEFT collision detected at angle %.2f rad, distance %.3f m", 
-                        normalized_angle, range);
+                        "[LEFT COLLISION] angle=%.3f rad (%.1f°), distance=%.3f m",
+                        normalized_angle, normalized_angle * 180 / M_PI, range);
                 }
             }
-            // BACK: +135° ~ ±180° または -180° ~ -135°
+            // BACK: 3π/4 ~ -3π/4 (135° ~ -135°, wrapping around ±π)
             else if (normalized_angle > 3*M_PI/4.0 || normalized_angle < -3*M_PI/4.0) {
                 collision_status_.back_min_dist = std::min(collision_status_.back_min_dist, range);
                 if (range <= COLLISION_THRESHOLD) {
                     collision_status_.back_collision = true;
                     RCLCPP_WARN(this->get_logger(), 
-                        "BACK collision detected at angle %.2f rad, distance %.3f m", 
-                        normalized_angle, range);
+                        "[BACK COLLISION] angle=%.3f rad (%.1f°), distance=%.3f m",
+                        normalized_angle, normalized_angle * 180 / M_PI, range);
                 }
             }
-            // RIGHT: -135° ~ -45°
+            // RIGHT: -3π/4 ~ -π/4 (−135° ~ −45°)
             else if (normalized_angle < -M_PI/4.0 && normalized_angle >= -3*M_PI/4.0) {
                 collision_status_.right_min_dist = std::min(collision_status_.right_min_dist, range);
                 if (range <= COLLISION_THRESHOLD) {
                     collision_status_.right_collision = true;
                     RCLCPP_WARN(this->get_logger(), 
-                        "RIGHT collision detected at angle %.2f rad, distance %.3f m", 
-                        normalized_angle, range);
+                        "[RIGHT COLLISION] angle=%.3f rad (%.1f°), distance=%.3f m",
+                        normalized_angle, normalized_angle * 180 / M_PI, range);
                 }
             }
         }
         
         // デバッグ: スキャンサマリーを出力
         RCLCPP_DEBUG(this->get_logger(),
-            "Scan Summary - FRONT: %.3f m, RIGHT: %.3f m, BACK: %.3f m, LEFT: %.3f m",
+            "Scan processed: valid_points=%d, FRONT=%.3f m, RIGHT=%.3f m, BACK=%.3f m, LEFT=%.3f m | Collision Status: FRONT=%d, RIGHT=%d, BACK=%d, LEFT=%d",
+            valid_count,
             collision_status_.front_min_dist,
             collision_status_.right_min_dist,
             collision_status_.back_min_dist,
-            collision_status_.left_min_dist);
+            collision_status_.left_min_dist,
+            collision_status_.front_collision,
+            collision_status_.right_collision,
+            collision_status_.back_collision,
+            collision_status_.left_collision);
     }
 
     void cmd_vel_callback(const geometry_msgs::msg::Twist::SharedPtr msg) {
         std::lock_guard<std::mutex> lock(collision_mutex_);
+        
+        if (!cmd_vel_received_) {
+            RCLCPP_INFO(this->get_logger(), "[CMD_VEL] First command received!");
+            cmd_vel_received_ = true;
+        }
+        
+        RCLCPP_DEBUG(this->get_logger(),
+            "[CMD_VEL RECEIVED] linear.x=%.3f, linear.y=%.3f, angular.z=%.3f | Collision: FRONT=%d, BACK=%d, LEFT=%d, RIGHT=%d",
+            msg->linear.x, msg->linear.y, msg->angular.z,
+            collision_status_.front_collision,
+            collision_status_.back_collision,
+            collision_status_.left_collision,
+            collision_status_.right_collision);
         
         auto safe_cmd = std::make_shared<geometry_msgs::msg::Twist>(*msg);
         
@@ -191,6 +218,10 @@ private:
 
         // 安全な速度コマンドを配信
         safe_velocity_publisher_->publish(*safe_cmd);
+        
+        RCLCPP_DEBUG(this->get_logger(),
+            "[PUBLISHED] linear.x=%.3f, linear.y=%.3f, angular.z=%.3f | Intervention=%d",
+            safe_cmd->linear.x, safe_cmd->linear.y, safe_cmd->angular.z, intervention_made);
 
         // 介入ログを生成
         if (intervention_made) {
