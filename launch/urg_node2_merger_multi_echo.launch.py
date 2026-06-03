@@ -48,7 +48,7 @@ def generate_launch_description():
                     {'queue_size': 5},
                     {'angle_increment': 0.001},
                     {'scan_time': 0.067},
-                    {'range_min': 0.01},
+                    {'range_min': 0.45},
                     {'range_max': 30.0},
                     {'min_height': -1.0},
                     {'max_height': 1.0},
