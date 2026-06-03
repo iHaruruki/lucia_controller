@@ -17,7 +17,7 @@ public:
         
         // /cmd_vel トピックを購読
         cmd_vel_subscription_ = this->create_subscription<geometry_msgs::msg::Twist>(
-            "/cmd_vel", 10,
+            "/joy_vel", 10,
             std::bind(&SafeVelocityControllerNode::cmd_vel_callback, this, std::placeholders::_1));
         
         // /cmd_vel_safe トピックを配信
@@ -84,36 +84,58 @@ private:
                 continue;
             }
 
-            // 各方向に分類
-            if (is_in_angle_range(angle, -M_PI/4.0, M_PI/4.0)) {  // FRONT
+            // 各方向に分類（角度範囲を正規化）
+            double normalized_angle = normalize_angle(angle);
+            
+            // FRONT: -45° ~ +45°
+            if (normalized_angle >= -M_PI/4.0 && normalized_angle <= M_PI/4.0) {
                 collision_status_.front_min_dist = std::min(collision_status_.front_min_dist, range);
                 if (range <= COLLISION_THRESHOLD) {
                     collision_status_.front_collision = true;
-                    RCLCPP_INFO(this->get_logger(), "front_collision:TRUE");
+                    RCLCPP_WARN(this->get_logger(), 
+                        "FRONT collision detected at angle %.2f rad, distance %.3f m", 
+                        normalized_angle, range);
                 }
             }
-            else if (is_in_angle_range(angle, -3*M_PI/4.0, -M_PI/4.0)) {  // RIGHT
-                collision_status_.right_min_dist = std::min(collision_status_.right_min_dist, range);
-                if (range <= COLLISION_THRESHOLD) {
-                    collision_status_.right_collision = true;
-                    RCLCPP_INFO(this->get_logger(), "right_collision:TRUE");
-                }
-            }
-            else if (is_in_angle_range(angle, 3*M_PI/4.0, -3*M_PI/4.0)) {  // BACK
-                collision_status_.back_min_dist = std::min(collision_status_.back_min_dist, range);
-                if (range <= COLLISION_THRESHOLD) {
-                    collision_status_.back_collision = true;
-                    RCLCPP_INFO(this->get_logger(), "back_collision:TRUE");
-                }
-            }
-            else if (is_in_angle_range(angle, M_PI/4.0, 3*M_PI/4.0)) {  // LEFT
+            // LEFT: +45° ~ +135°
+            else if (normalized_angle > M_PI/4.0 && normalized_angle <= 3*M_PI/4.0) {
                 collision_status_.left_min_dist = std::min(collision_status_.left_min_dist, range);
                 if (range <= COLLISION_THRESHOLD) {
                     collision_status_.left_collision = true;
-                    RCLCPP_INFO(this->get_logger(), "left_collision:TRUE");
+                    RCLCPP_WARN(this->get_logger(), 
+                        "LEFT collision detected at angle %.2f rad, distance %.3f m", 
+                        normalized_angle, range);
+                }
+            }
+            // BACK: +135° ~ ±180° または -180° ~ -135°
+            else if (normalized_angle > 3*M_PI/4.0 || normalized_angle < -3*M_PI/4.0) {
+                collision_status_.back_min_dist = std::min(collision_status_.back_min_dist, range);
+                if (range <= COLLISION_THRESHOLD) {
+                    collision_status_.back_collision = true;
+                    RCLCPP_WARN(this->get_logger(), 
+                        "BACK collision detected at angle %.2f rad, distance %.3f m", 
+                        normalized_angle, range);
+                }
+            }
+            // RIGHT: -135° ~ -45°
+            else if (normalized_angle < -M_PI/4.0 && normalized_angle >= -3*M_PI/4.0) {
+                collision_status_.right_min_dist = std::min(collision_status_.right_min_dist, range);
+                if (range <= COLLISION_THRESHOLD) {
+                    collision_status_.right_collision = true;
+                    RCLCPP_WARN(this->get_logger(), 
+                        "RIGHT collision detected at angle %.2f rad, distance %.3f m", 
+                        normalized_angle, range);
                 }
             }
         }
+        
+        // デバッグ: スキャンサマリーを出力
+        RCLCPP_DEBUG(this->get_logger(),
+            "Scan Summary - FRONT: %.3f m, RIGHT: %.3f m, BACK: %.3f m, LEFT: %.3f m",
+            collision_status_.front_min_dist,
+            collision_status_.right_min_dist,
+            collision_status_.back_min_dist,
+            collision_status_.left_min_dist);
     }
 
     void cmd_vel_callback(const geometry_msgs::msg::Twist::SharedPtr msg) {
@@ -209,12 +231,11 @@ private:
         intervention_publisher_->publish(status_msg);
     }
 
-    bool is_in_angle_range(double angle, double min_angle, double max_angle) {
-        // BACK方向（±π をまたぐ）の特殊処理
-        if (min_angle > max_angle) {
-            return (angle >= min_angle || angle <= max_angle);
-        }
-        return (angle >= min_angle && angle <= max_angle);
+    // 角度を -π ~ π の範囲に正規化
+    double normalize_angle(double angle) {
+        while (angle > M_PI) angle -= 2 * M_PI;
+        while (angle < -M_PI) angle += 2 * M_PI;
+        return angle;
     }
 };
 

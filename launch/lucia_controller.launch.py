@@ -49,14 +49,14 @@ def generate_launch_description():
         ),
 
         # lucia_collision_monitor_node
-        Node(
-            package='lucia_controller',
-            executable='lucia_collision_monitor_node',
-            name='lucia_collision_monitor_node',
-            remappings=[
-                ('/cmd_vel', '/twist_mux/cmd_vel')
-            ],
-            # ros_arguments=['--log-level', 'debug'],
-            output='screen',
-        ),
+        # Node(
+        #     package='lucia_controller',
+        #     executable='lucia_collision_monitor_node',
+        #     name='lucia_collision_monitor_node',
+        #     remappings=[
+        #         ('/cmd_vel', '/twist_mux/cmd_vel')
+        #     ],
+        #     # ros_arguments=['--log-level', 'debug'],
+        #     output='screen',
+        # ),
     ])
