@@ -17,7 +17,7 @@ public:
         
         // /cmd_vel トピックを購読
         cmd_vel_subscription_ = this->create_subscription<geometry_msgs::msg::Twist>(
-            "/joy_vel", 10,
+            "/cmd_vel", 10,
             std::bind(&SafeVelocityControllerNode::cmd_vel_callback, this, std::placeholders::_1));
         
         // /cmd_vel_safe トピックを配信
