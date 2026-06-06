@@ -31,7 +31,8 @@ public:
             "Robot Radius: %.2f m\n"
             "Collision Threshold: %.2f m\n"
             "Subscribing to: /scan, /cmd_vel\n"
-            "Publishing to: /cmd_vel_safe, /intervention_status",
+            "Publishing to: /collision_monitor/cmd_vel, /intervention_status\n"
+            "=== SAFETY MODE: Publishes stop command immediately on collision detection ===",
             ROBOT_RADIUS, COLLISION_THRESHOLD);
     }
 
@@ -54,15 +55,22 @@ private:
     rclcpp::Publisher<std_msgs::msg::String>::SharedPtr intervention_publisher_;
     
     DirectionCollisionStatus collision_status_;
-    std::mutex collision_mutex_;
+    geometry_msgs::msg::Twist last_cmd_vel_;
+    std::mutex data_mutex_;
     
     // パラメータ
     static constexpr float ROBOT_RADIUS = 0.25f;
-    static constexpr float COLLISION_THRESHOLD = 0.4f;
-    static constexpr float WARNING_THRESHOLD = 0.5f;
+    static constexpr float COLLISION_THRESHOLD = 0.8f;
+    static constexpr float WARNING_THRESHOLD = 0.9f;
 
     void scan_callback(const sensor_msgs::msg::LaserScan::SharedPtr msg) {
-        std::lock_guard<std::mutex> lock(collision_mutex_);
+        std::lock_guard<std::mutex> lock(data_mutex_);
+        
+        // 前回の衝突状態を保存（変化を検出するため）
+        bool prev_front_collision = collision_status_.front_collision;
+        bool prev_back_collision = collision_status_.back_collision;
+        bool prev_left_collision = collision_status_.left_collision;
+        bool prev_right_collision = collision_status_.right_collision;
         
         // 衝突状態をリセット
         collision_status_.front_collision = false;
@@ -84,151 +92,152 @@ private:
                 continue;
             }
 
-            // 各方向に分類（角度範囲を正規化）
+            // 角度を正規化 (-π ~ π)
             double normalized_angle = normalize_angle(angle);
             
-            // FRONT: -45° ~ +45°
+            // FRONT: -π/4 ~ π/4 (−45° ~ 45°)
             if (normalized_angle >= -M_PI/4.0 && normalized_angle <= M_PI/4.0) {
                 collision_status_.front_min_dist = std::min(collision_status_.front_min_dist, range);
                 if (range <= COLLISION_THRESHOLD) {
                     collision_status_.front_collision = true;
-                    RCLCPP_WARN(this->get_logger(), 
-                        "FRONT collision detected at angle %.2f rad, distance %.3f m", 
-                        normalized_angle, range);
                 }
             }
-            // LEFT: +45° ~ +135°
+            // LEFT: π/4 ~ 3π/4 (45° ~ 135°)
             else if (normalized_angle > M_PI/4.0 && normalized_angle <= 3*M_PI/4.0) {
                 collision_status_.left_min_dist = std::min(collision_status_.left_min_dist, range);
                 if (range <= COLLISION_THRESHOLD) {
                     collision_status_.left_collision = true;
-                    RCLCPP_WARN(this->get_logger(), 
-                        "LEFT collision detected at angle %.2f rad, distance %.3f m", 
-                        normalized_angle, range);
                 }
             }
-            // BACK: +135° ~ ±180° または -180° ~ -135°
+            // BACK: 3π/4 ~ -3π/4 (135° ~ -135°, wrapping around ±π)
             else if (normalized_angle > 3*M_PI/4.0 || normalized_angle < -3*M_PI/4.0) {
                 collision_status_.back_min_dist = std::min(collision_status_.back_min_dist, range);
                 if (range <= COLLISION_THRESHOLD) {
                     collision_status_.back_collision = true;
-                    RCLCPP_WARN(this->get_logger(), 
-                        "BACK collision detected at angle %.2f rad, distance %.3f m", 
-                        normalized_angle, range);
                 }
             }
-            // RIGHT: -135° ~ -45°
+            // RIGHT: -3π/4 ~ -π/4 (−135° ~ −45°)
             else if (normalized_angle < -M_PI/4.0 && normalized_angle >= -3*M_PI/4.0) {
                 collision_status_.right_min_dist = std::min(collision_status_.right_min_dist, range);
                 if (range <= COLLISION_THRESHOLD) {
                     collision_status_.right_collision = true;
-                    RCLCPP_WARN(this->get_logger(), 
-                        "RIGHT collision detected at angle %.2f rad, distance %.3f m", 
-                        normalized_angle, range);
                 }
             }
         }
         
-        // デバッグ: スキャンサマリーを出力
-        RCLCPP_DEBUG(this->get_logger(),
-            "Scan Summary - FRONT: %.3f m, RIGHT: %.3f m, BACK: %.3f m, LEFT: %.3f m",
-            collision_status_.front_min_dist,
-            collision_status_.right_min_dist,
-            collision_status_.back_min_dist,
-            collision_status_.left_min_dist);
+        // === SAFETY: 衝突検出時にすぐに安全速度を発行 ===
+        bool collision_detected = collision_status_.front_collision || 
+                                  collision_status_.back_collision ||
+                                  collision_status_.left_collision ||
+                                  collision_status_.right_collision;
+        
+        if (collision_detected) {
+            // 衝突状態を検出したら、すぐに安全コマンドを生成して発行
+            auto safe_cmd = generate_safe_velocity(last_cmd_vel_);
+            safe_velocity_publisher_->publish(safe_cmd);
+            
+            // ステータスを発行
+            auto status_msg = std_msgs::msg::String();
+            std::stringstream ss;
+            ss << std::fixed << std::setprecision(3);
+            ss << "[COLLISION DETECTED]\n"
+               << "FRONT: " << (collision_status_.front_collision ? "COLLISION" : "SAFE") << " (" << collision_status_.front_min_dist << " m)\n"
+               << "RIGHT: " << (collision_status_.right_collision ? "COLLISION" : "SAFE") << " (" << collision_status_.right_min_dist << " m)\n"
+               << "BACK: " << (collision_status_.back_collision ? "COLLISION" : "SAFE") << " (" << collision_status_.back_min_dist << " m)\n"
+               << "LEFT: " << (collision_status_.left_collision ? "COLLISION" : "SAFE") << " (" << collision_status_.left_min_dist << " m)\n"
+               << "Last cmd_vel: x=" << last_cmd_vel_.linear.x << ", y=" << last_cmd_vel_.linear.y << "\n"
+               << "Safe cmd_vel: x=" << safe_cmd.linear.x << ", y=" << safe_cmd.linear.y;
+            status_msg.data = ss.str();
+            intervention_publisher_->publish(status_msg);
+            
+            // 衝突状態の変化をログ
+            if (!prev_front_collision && collision_status_.front_collision) {
+                RCLCPP_WARN(this->get_logger(), "[SAFETY] FRONT COLLISION DETECTED - Publishing stop command!");
+            }
+            if (!prev_back_collision && collision_status_.back_collision) {
+                RCLCPP_WARN(this->get_logger(), "[SAFETY] BACK COLLISION DETECTED - Publishing stop command!");
+            }
+            if (!prev_left_collision && collision_status_.left_collision) {
+                RCLCPP_WARN(this->get_logger(), "[SAFETY] LEFT COLLISION DETECTED - Publishing stop command!");
+            }
+            if (!prev_right_collision && collision_status_.right_collision) {
+                RCLCPP_WARN(this->get_logger(), "[SAFETY] RIGHT COLLISION DETECTED - Publishing stop command!");
+            }
+        }
     }
 
     void cmd_vel_callback(const geometry_msgs::msg::Twist::SharedPtr msg) {
-        std::lock_guard<std::mutex> lock(collision_mutex_);
+        std::lock_guard<std::mutex> lock(data_mutex_);
         
-        auto safe_cmd = std::make_shared<geometry_msgs::msg::Twist>(*msg);
+        // 最新のコマンドを保存
+        last_cmd_vel_ = *msg;
         
-        std::stringstream intervention_log;
-        intervention_log << std::fixed << std::setprecision(3);
+        RCLCPP_DEBUG(this->get_logger(),
+            "[CMD_VEL] Received: x=%.3f, y=%.3f, z=%.3f",
+            msg->linear.x, msg->linear.y, msg->angular.z);
         
+        // 現在の衝突状態で安全なコマンドを生成
+        auto safe_cmd = generate_safe_velocity(*msg);
+        
+        // 安全なコマンドを発行
+        safe_velocity_publisher_->publish(safe_cmd);
+        
+        RCLCPP_DEBUG(this->get_logger(),
+            "[SAFE_VEL] Published: x=%.3f, y=%.3f, z=%.3f | Collision: F=%d, B=%d, L=%d, R=%d",
+            safe_cmd.linear.x, safe_cmd.linear.y, safe_cmd.angular.z,
+            collision_status_.front_collision,
+            collision_status_.back_collision,
+            collision_status_.left_collision,
+            collision_status_.right_collision);
+    }
+
+    // 安全な速度コマンドを生成
+    geometry_msgs::msg::Twist generate_safe_velocity(const geometry_msgs::msg::Twist& cmd) {
+        auto safe_cmd = cmd;
         bool intervention_made = false;
         std::vector<std::string> blocked_directions;
 
         // 前進が衝突方向に該当するか確認
-        if (collision_status_.front_collision && msg->linear.x > 0.0) {
-            RCLCPP_WARN(this->get_logger(), 
-                "[INTERVENTION] FRONT COLLISION - Blocking forward movement (%.3f m/s)",
-                msg->linear.x);
-            safe_cmd->linear.x = 0.0;
+        if (collision_status_.front_collision && cmd.linear.x > 0.0) {
+            safe_cmd.linear.x = 0.0;
             intervention_made = true;
-            blocked_directions.push_back("FRONT (forward)");
+            blocked_directions.push_back("FRONT");
         }
 
         // 後進が衝突方向に該当するか確認
-        if (collision_status_.back_collision && msg->linear.x < 0.0) {
-            RCLCPP_WARN(this->get_logger(), 
-                "[INTERVENTION] BACK COLLISION - Blocking backward movement (%.3f m/s)",
-                msg->linear.x);
-            safe_cmd->linear.x = 0.0;
+        if (collision_status_.back_collision && cmd.linear.x < 0.0) {
+            safe_cmd.linear.x = 0.0;
             intervention_made = true;
-            blocked_directions.push_back("BACK (backward)");
+            blocked_directions.push_back("BACK");
         }
 
         // 左方向への移動が衝突方向に該当するか確認
-        if (collision_status_.left_collision && msg->linear.y > 0.0) {
-            RCLCPP_WARN(this->get_logger(), 
-                "[INTERVENTION] LEFT COLLISION - Blocking left movement (%.3f m/s)",
-                msg->linear.y);
-            safe_cmd->linear.y = 0.0;
+        if (collision_status_.left_collision && cmd.linear.y > 0.0) {
+            safe_cmd.linear.y = 0.0;
             intervention_made = true;
-            blocked_directions.push_back("LEFT (left)");
+            blocked_directions.push_back("LEFT");
         }
 
         // 右方向への移動が衝突方向に該当するか確認
-        if (collision_status_.right_collision && msg->linear.y < 0.0) {
-            RCLCPP_WARN(this->get_logger(), 
-                "[INTERVENTION] RIGHT COLLISION - Blocking right movement (%.3f m/s)",
-                msg->linear.y);
-            safe_cmd->linear.y = 0.0;
+        if (collision_status_.right_collision && cmd.linear.y < 0.0) {
+            safe_cmd.linear.y = 0.0;
             intervention_made = true;
-            blocked_directions.push_back("RIGHT (right)");
+            blocked_directions.push_back("RIGHT");
         }
 
-        // 安全な速度コマンドを配信
-        safe_velocity_publisher_->publish(*safe_cmd);
-
-        // 介入ログを生成
+        // 介入があればログ出力
         if (intervention_made) {
-            intervention_log << "[INTERVENTION]\n";
-            intervention_log << "Blocked Directions: ";
+            std::stringstream ss;
+            ss << "Blocked: ";
             for (size_t i = 0; i < blocked_directions.size(); i++) {
-                intervention_log << blocked_directions[i];
-                if (i < blocked_directions.size() - 1) intervention_log << ", ";
+                ss << blocked_directions[i];
+                if (i < blocked_directions.size() - 1) ss << ", ";
             }
-            intervention_log << "\n";
-            intervention_log << "Original cmd_vel: "
-                << "linear.x=" << msg->linear.x
-                << ", linear.y=" << msg->linear.y
-                << ", angular.z=" << msg->angular.z << "\n";
-            intervention_log << "Modified cmd_vel: "
-                << "linear.x=" << safe_cmd->linear.x
-                << ", linear.y=" << safe_cmd->linear.y
-                << ", angular.z=" << safe_cmd->angular.z << "\n";
-            intervention_log << "Collision Status:\n"
-                << "  FRONT: " << (collision_status_.front_collision ? "COLLISION" : "SAFE")
-                << " (" << collision_status_.front_min_dist << " m)\n"
-                << "  RIGHT: " << (collision_status_.right_collision ? "COLLISION" : "SAFE")
-                << " (" << collision_status_.right_min_dist << " m)\n"
-                << "  BACK: " << (collision_status_.back_collision ? "COLLISION" : "SAFE")
-                << " (" << collision_status_.back_min_dist << " m)\n"
-                << "  LEFT: " << (collision_status_.left_collision ? "COLLISION" : "SAFE")
-                << " (" << collision_status_.left_min_dist << " m)";
-        } else {
-            intervention_log << "[PASS] Command allowed - Safe movement in all enabled directions\n"
-                << "cmd_vel: linear.x=" << msg->linear.x
-                << ", linear.y=" << msg->linear.y
-                << ", angular.z=" << msg->angular.z;
+            RCLCPP_WARN(this->get_logger(), "[INTERVENTION] %s | Original: x=%.3f, y=%.3f → Safe: x=%.3f, y=%.3f",
+                ss.str().c_str(), cmd.linear.x, cmd.linear.y, safe_cmd.linear.x, safe_cmd.linear.y);
         }
 
-        // 介入状態を配信
-        auto status_msg = std_msgs::msg::String();
-        status_msg.data = intervention_log.str();
-        intervention_publisher_->publish(status_msg);
+        return safe_cmd;
     }
 
     // 角度を -π ~ π の範囲に正規化
