@@ -152,16 +152,16 @@ private:
             
             // 衝突状態の変化をログ
             if (!prev_front_collision && collision_status_.front_collision) {
-                RCLCPP_WARN(this->get_logger(), "[SAFETY] FRONT COLLISION DETECTED - Publishing stop command!");
+                RCLCPP_DEBUG(this->get_logger(), "[SAFETY] FRONT COLLISION DETECTED - Publishing stop command!");
             }
             if (!prev_back_collision && collision_status_.back_collision) {
-                RCLCPP_WARN(this->get_logger(), "[SAFETY] BACK COLLISION DETECTED - Publishing stop command!");
+                RCLCPP_DEBUG(this->get_logger(), "[SAFETY] BACK COLLISION DETECTED - Publishing stop command!");
             }
             if (!prev_left_collision && collision_status_.left_collision) {
-                RCLCPP_WARN(this->get_logger(), "[SAFETY] LEFT COLLISION DETECTED - Publishing stop command!");
+                RCLCPP_DEBUG(this->get_logger(), "[SAFETY] LEFT COLLISION DETECTED - Publishing stop command!");
             }
             if (!prev_right_collision && collision_status_.right_collision) {
-                RCLCPP_WARN(this->get_logger(), "[SAFETY] RIGHT COLLISION DETECTED - Publishing stop command!");
+                RCLCPP_DEBUG(this->get_logger(), "[SAFETY] RIGHT COLLISION DETECTED - Publishing stop command!");
             }
         }
     }
