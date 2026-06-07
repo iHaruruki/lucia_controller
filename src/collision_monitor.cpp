@@ -60,8 +60,8 @@ private:
     
     // パラメータ
     static constexpr float ROBOT_RADIUS = 0.25f;
-    static constexpr float COLLISION_THRESHOLD = 0.8f;
-    static constexpr float WARNING_THRESHOLD = 0.9f;
+    static constexpr float COLLISION_THRESHOLD = 0.6f;
+    static constexpr float WARNING_THRESHOLD = 0.8f;
 
     void scan_callback(const sensor_msgs::msg::LaserScan::SharedPtr msg) {
         std::lock_guard<std::mutex> lock(data_mutex_);
