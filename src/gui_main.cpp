@@ -15,6 +15,11 @@
 namespace
 {
 constexpr float kTargetFrameTimeSec = 1.0F / 60.0F;
+constexpr float kMainWindowPosX = 20.0F;
+constexpr float kMainWindowPosY = 20.0F;
+constexpr float kMainWindowWidth = 860.0F;
+constexpr float kMainWindowHeight = 500.0F;
+constexpr float kModeFontScale = 2.8F;
 const ImVec4 kInteractiveColor = ImVec4(1.0F, 0.55F, 0.0F, 1.0F);
 const ImVec4 kAutonomousColor = ImVec4(0.0F, 0.8F, 0.2F, 1.0F);
 }  // namespace
@@ -46,8 +51,6 @@ int main(int argc, char ** argv)
 
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
-  ImGuiIO & io = ImGui::GetIO();
-  static_cast<void>(io);
   ImGui::StyleColorsDark();
 
   ImGui_ImplGlfw_InitForOpenGL(window, true);
@@ -63,8 +66,8 @@ int main(int argc, char ** argv)
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    ImGui::SetNextWindowPos(ImVec2(20.0F, 20.0F), ImGuiCond_Once);
-    ImGui::SetNextWindowSize(ImVec2(860.0F, 500.0F), ImGuiCond_Once);
+    ImGui::SetNextWindowPos(ImVec2(kMainWindowPosX, kMainWindowPosY), ImGuiCond_Once);
+    ImGui::SetNextWindowSize(ImVec2(kMainWindowWidth, kMainWindowHeight), ImGuiCond_Once);
     ImGui::Begin("ROS 2 Navigation Mode Display");
 
     const bool interactive_mode = node->is_interactive_mode();
@@ -76,7 +79,7 @@ int main(int argc, char ** argv)
     ImGui::Separator();
     ImGui::Spacing();
 
-    ImGui::SetWindowFontScale(2.8F);
+    ImGui::SetWindowFontScale(kModeFontScale);
     const ImVec2 text_size = ImGui::CalcTextSize(mode_text);
     const float window_width = ImGui::GetContentRegionAvail().x;
     ImGui::SetCursorPosX((window_width - text_size.x) * 0.5F);

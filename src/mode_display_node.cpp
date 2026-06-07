@@ -5,7 +5,7 @@ ModeDisplayNode::ModeDisplayNode()
   interactive_mode_(false),
   message_count_(0),
   has_received_message_(false),
-  last_message_time_(this->now()),
+  last_message_time_(0, 0, this->get_clock()->get_clock_type()),
   topic_name_("/reject_nav_vel")
 {
   reject_nav_vel_sub_ = this->create_subscription<std_msgs::msg::Bool>(

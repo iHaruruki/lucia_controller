@@ -79,7 +79,7 @@ foreach(candidate ${IMGUI_DIR_CANDIDATES})
 endforeach()
 
 if(IMGUI_DIR STREQUAL "")
-  message(FATAL_ERROR "ImGui not found. Please initialize ImGui submodule under third_party/imgui, external/imgui, or imgui.")
+  message(FATAL_ERROR "ImGui not found. Provide ImGui sources under third_party/imgui, external/imgui, or imgui. If this repository uses submodules, run: git submodule update --init --recursive.")
 endif()
 
 add_library(imgui_vendor STATIC
