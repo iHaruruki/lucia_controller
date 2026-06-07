@@ -36,7 +36,7 @@ def generate_launch_description():
             ],
             output='screen',
         ),
-        # joy_to_cmd_vel_node 
+        # navigation_mode_display_node
         Node(
             package='makuhari_gui',
             executable='navigation_mode_display_node',
