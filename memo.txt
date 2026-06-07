@@ -1,4 +1,0 @@
-Front: -pi/4 ~ pi/4
-Left: pi/4 ~ 3*pi/4
-Back: 3*pi/4 ~ -3*pi/4
-Right: -3*pi/4 ~ -pi/4
