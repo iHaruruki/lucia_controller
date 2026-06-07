@@ -7,7 +7,6 @@ Panels:
         - /Global Options1
         - /TF1/Frames1
         - /TF1/Tree1
-        - /Map1/Update Topic1
         - /Controller1/Trajectories1
         - /Astra21/Occlusion Compensation1
       Splitter Ratio: 0.5833333134651184
@@ -373,72 +372,73 @@ Visualization Manager:
       Show Names: false
       Tree:
         map:
-          odom:
-            base_footprint:
-              base_link:
-                aluminum_frame:
-                  module1_lower_link:
-                    module1_roll_link:
-                      module1_pitch_link:
-                        module1_upper_link:
-                          module2_lower_link:
-                            module2_roll_link:
-                              module2_pitch_link:
-                                module2_upper_link:
-                                  module3_lower_link:
-                                    module3_roll_link:
-                                      module3_pitch_link:
-                                        module3_upper_link:
-                                          module4_lower_link:
-                                            module4_roll_link:
-                                              module4_pitch_link:
-                                                module4_upper_link:
-                                                  module5_lower_link:
-                                                    module5_roll_link:
-                                                      module5_pitch_link:
-                                                        module5_upper_link:
-                                                          module6_lower_link:
-                                                            module6_roll_link:
-                                                              module6_pitch_link:
-                                                                module6_upper_link:
-                                                                  vital_arm_link:
-                                                                    {}
-                brio_100_link:
-                  {}
-                front_left_wheel:
-                  {}
-                front_right_wheel:
-                  {}
-                lsc_mount:
-                  laser_front:
-                    laser_front_calibrated:
+          {}
+        odom:
+          base_footprint:
+            base_link:
+              aluminum_frame:
+                module1_lower_link:
+                  module1_roll_link:
+                    module1_pitch_link:
+                      module1_upper_link:
+                        module2_lower_link:
+                          module2_roll_link:
+                            module2_pitch_link:
+                              module2_upper_link:
+                                module3_lower_link:
+                                  module3_roll_link:
+                                    module3_pitch_link:
+                                      module3_upper_link:
+                                        module4_lower_link:
+                                          module4_roll_link:
+                                            module4_pitch_link:
+                                              module4_upper_link:
+                                                module5_lower_link:
+                                                  module5_roll_link:
+                                                    module5_pitch_link:
+                                                      module5_upper_link:
+                                                        module6_lower_link:
+                                                          module6_roll_link:
+                                                            module6_pitch_link:
+                                                              module6_upper_link:
+                                                                vital_arm_link:
+                                                                  {}
+              brio_100_link:
+                {}
+              front_left_wheel:
+                {}
+              front_right_wheel:
+                {}
+              lsc_mount:
+                laser_front:
+                  laser_front_calibrated:
+                    {}
+                laser_rear:
+                  laser_rear_calibrated:
+                    {}
+                unilidar_base:
+                  unilidar_lidar:
+                    {}
+              lucia_astra_camera_link:
+                lucia_astra_camera_depth_frame:
+                  lucia_astra_camera_accel_frame:
+                    lucia_astra_camera_accel_optical_frame:
                       {}
-                  laser_rear:
-                    laser_rear_calibrated:
+                  lucia_astra_camera_color_frame:
+                    lucia_astra_camera_color_optical_frame:
                       {}
-                  unilidar_base:
-                    unilidar_lidar:
+                  lucia_astra_camera_depth_optical_frame:
+                    {}
+                  lucia_astra_camera_gyro_frame:
+                    lucia_astra_camera_gyro_optical_frame:
                       {}
-                lucia_astra_camera_link:
-                  lucia_astra_camera_depth_frame:
-                    lucia_astra_camera_accel_frame:
-                      lucia_astra_camera_accel_optical_frame:
-                        {}
-                    lucia_astra_camera_color_frame:
-                      lucia_astra_camera_color_optical_frame:
-                        {}
-                    lucia_astra_camera_depth_optical_frame:
+                  lucia_astra_camera_ir_frame:
+                    lucia_astra_camera_ir_optical_frame:
                       {}
-                    lucia_astra_camera_gyro_frame:
-                      lucia_astra_camera_gyro_optical_frame:
-                        {}
-                    lucia_astra_camera_ir_frame:
-                      lucia_astra_camera_ir_optical_frame:
-                        {}
-                rear_left_wheel:
-                  {}
-                rear_right_wheel:
-                  {}
+              rear_left_wheel:
+                {}
+              rear_right_wheel:
+                {}
       Update Interval: 0
       Value: true
     - Alpha: 1
@@ -524,7 +524,7 @@ Visualization Manager:
         Value: /map
       Update Topic:
         Depth: 5
-        Durability Policy: Transient Local
+        Durability Policy: Volatile
         History Policy: Keep Last
         Reliability Policy: Reliable
         Value: /map_updates
