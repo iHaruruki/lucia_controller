@@ -12,6 +12,7 @@ endif()
 
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(message_filters REQUIRED)
 find_package(sensor_msgs REQUIRED)
@@ -22,6 +23,8 @@ find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(OpenCV REQUIRED)
+find_package(OpenGL REQUIRED)
+find_package(glfw3 REQUIRED)
 find_package(PkgConfig REQUIRED)
 find_package(YARP REQUIRED)
 
@@ -61,6 +64,56 @@ ament_target_dependencies(color_compressed_viewr_node rclcpp std_msgs sensor_msg
 add_executable(depth_compressed_viewr_node src/depth_compressed_viewer.cpp)
 ament_target_dependencies(depth_compressed_viewr_node rclcpp std_msgs sensor_msgs cv_bridge OpenCV)
 
+set(IMGUI_DIR_CANDIDATES
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui
+  ${CMAKE_CURRENT_SOURCE_DIR}/external/imgui
+  ${CMAKE_CURRENT_SOURCE_DIR}/imgui
+)
+
+set(IMGUI_DIR "")
+foreach(candidate ${IMGUI_DIR_CANDIDATES})
+  if(EXISTS "${candidate}/imgui.h")
+    set(IMGUI_DIR "${candidate}")
+    break()
+  endif()
+endforeach()
+
+if(IMGUI_DIR STREQUAL "")
+  message(FATAL_ERROR "ImGui not found. Please initialize ImGui submodule under third_party/imgui, external/imgui, or imgui.")
+endif()
+
+add_library(imgui_vendor STATIC
+  ${IMGUI_DIR}/imgui.cpp
+  ${IMGUI_DIR}/imgui_draw.cpp
+  ${IMGUI_DIR}/imgui_tables.cpp
+  ${IMGUI_DIR}/imgui_widgets.cpp
+  ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp
+  ${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp
+)
+target_include_directories(imgui_vendor PUBLIC
+  ${IMGUI_DIR}
+  ${IMGUI_DIR}/backends
+)
+target_link_libraries(imgui_vendor PUBLIC
+  glfw
+  OpenGL::GL
+)
+
+add_executable(mode_display_gui_node
+  src/gui_main.cpp
+  src/mode_display_node.cpp
+)
+target_include_directories(mode_display_gui_node PRIVATE
+  include
+)
+ament_target_dependencies(mode_display_gui_node
+  rclcpp
+  std_msgs
+)
+target_link_libraries(mode_display_gui_node
+  imgui_vendor
+)
+
 install(TARGETS
   lucia_controller_node
   lucia_minimal_controller_node
@@ -69,7 +122,8 @@ install(TARGETS
   joy_to_cmdvel_node
   lucia_collision_monitor_node
   color_compressed_viewr_node
-  depth_compressed_viewr_node 
+  depth_compressed_viewr_node
+  mode_display_gui_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
