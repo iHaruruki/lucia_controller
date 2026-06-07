@@ -303,8 +303,6 @@ Visualization Manager:
           Value: true
         lucia_astra_camera_link:
           Value: true
-        map:
-          Value: true
         module1_lower_link:
           Value: true
         module1_pitch_link:
@@ -371,8 +369,22 @@ Visualization Manager:
       Show Axes: true
       Show Names: false
       Tree:
-        map:
-          {}
+        lucia_astra_camera_link:
+          lucia_astra_camera_depth_frame:
+            lucia_astra_camera_accel_frame:
+              lucia_astra_camera_accel_optical_frame:
+                {}
+            lucia_astra_camera_color_frame:
+              lucia_astra_camera_color_optical_frame:
+                {}
+            lucia_astra_camera_depth_optical_frame:
+              {}
+            lucia_astra_camera_gyro_frame:
+              lucia_astra_camera_gyro_optical_frame:
+                {}
+            lucia_astra_camera_ir_frame:
+              lucia_astra_camera_ir_optical_frame:
+                {}
         odom:
           base_footprint:
             base_link:
@@ -419,22 +431,6 @@ Visualization Manager:
                 unilidar_base:
                   unilidar_lidar:
                     {}
-              lucia_astra_camera_link:
-                lucia_astra_camera_depth_frame:
-                  lucia_astra_camera_accel_frame:
-                    lucia_astra_camera_accel_optical_frame:
-                      {}
-                  lucia_astra_camera_color_frame:
-                    lucia_astra_camera_color_optical_frame:
-                      {}
-                  lucia_astra_camera_depth_optical_frame:
-                    {}
-                  lucia_astra_camera_gyro_frame:
-                    lucia_astra_camera_gyro_optical_frame:
-                      {}
-                  lucia_astra_camera_ir_frame:
-                    lucia_astra_camera_ir_optical_frame:
-                      {}
               rear_left_wheel:
                 {}
               rear_right_wheel:
@@ -450,10 +446,10 @@ Visualization Manager:
       Axis: Z
       Channel Name: intensity
       Class: rviz_default_plugins/LaserScan
-      Color: 255; 255; 255
-      Color Transformer: Intensity
+      Color: 255; 25; 0
+      Color Transformer: FlatColor
       Decay Time: 0
-      Enabled: false
+      Enabled: true
       Invert Rainbow: false
       Max Color: 255; 255; 255
       Max Intensity: 0
@@ -474,7 +470,7 @@ Visualization Manager:
         Value: /scan
       Use Fixed Frame: true
       Use rainbow: true
-      Value: false
+      Value: true
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
@@ -824,7 +820,7 @@ Visualization Manager:
       Decay Time: 0
       Depth Map Topic: /lucia_astra_camera/depth/image_raw
       Depth Map Transport Hint: compressedDepth
-      Enabled: false
+      Enabled: true
       Invert Rainbow: false
       Max Color: 255; 255; 255
       Max Intensity: 4096
@@ -843,7 +839,7 @@ Visualization Manager:
       Topic Filter: true
       Use Fixed Frame: true
       Use rainbow: true
-      Value: false
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -882,25 +878,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 19.97876739501953
+      Distance: 14.989692687988281
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0
-        Y: 0
-        Z: 0
+        X: -0.1905830204486847
+        Y: 0.08495358377695084
+        Z: -0.4260602295398712
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.8403980731964111
+      Pitch: 0.35039854049682617
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz_default_plugins)
-      Yaw: 4.70039176940918
+      Yaw: 3.145390033721924
     Saved: ~
 Window Geometry:
   Displays:
