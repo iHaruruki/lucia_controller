@@ -4,7 +4,7 @@ from launch.conditions import IfCondition, UnlessCondition
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, Command, FindExecutable
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
-from launch_ros.parameter_descriptions import ParameterValue  # ★追加
+from launch_ros.parameter_descriptions import ParameterValue
 
 def generate_launch_description():
     use_gui = LaunchConfiguration('use_gui')
@@ -14,7 +14,7 @@ def generate_launch_description():
     default_model_path = PathJoinSubstitution([
         FindPackageShare('lucia_description'),
         'urdf',
-        'lucia_spina_unitree.urdf',
+        'lucia_main.urdf',
     ])
 
     declare_model = DeclareLaunchArgument(

@@ -14,7 +14,7 @@ def generate_launch_description():
     # Robot description
     ld.add_action(IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(launch_dir, 'lucia_state_publisher.launch.py')
+            os.path.join(launch_dir, 'robot_description.launch.py')
         ),
     ))
 
