@@ -19,12 +19,10 @@ def generate_launch_description():
 
     declare_model = DeclareLaunchArgument(
         'model', default_value=default_model_path,
-        description='URDF/Xacro ファイルへのパス'
     )
     declare_use_gui = DeclareLaunchArgument('use_gui', default_value='false')
     declare_use_sim_time = DeclareLaunchArgument('use_sim_time', default_value='false')
 
-    # xacroを実行し、その出力を「文字列として」robot_descriptionへ
     robot_description_content = ParameterValue(
         Command([FindExecutable(name='xacro'), ' ', model]),
         value_type=str
