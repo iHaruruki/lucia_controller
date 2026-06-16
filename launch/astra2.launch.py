@@ -12,7 +12,7 @@ import os
 def generate_launch_description():
     # Declare arguments
     args = [
-        DeclareLaunchArgument("camera_name", default_value="lucia_astra_camera"),
+        DeclareLaunchArgument("camera_name", default_value="camera"),
         DeclareLaunchArgument("depth_registration", default_value="true"),
         DeclareLaunchArgument("serial_number", default_value=""),
         DeclareLaunchArgument("usb_port", default_value=""),
