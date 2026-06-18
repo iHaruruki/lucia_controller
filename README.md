@@ -16,8 +16,8 @@
 ![Node & Topics](/manual/node_topic_conection/node_motor.png)
 
 ## 📋 Requirements
-- **OS:** Ubuntu 22.04
-- **ROS version:** ROS 2 Humble
+- **OS:** Ubuntu 24.04
+- **ROS version:** ROS 2 Jazzy
 - **YARP:** Use a version older than `YARP-3.11`
 
 ## Setup
@@ -79,7 +79,7 @@ yarp namespace /lucia_g
 Install robot-localization
 ```bash
 sudo apt update
-sudo apt install ros-${ROS_DISTRO}-nav-msgs ros-${ROS_DISTRO}-nav2-bringup ros-${ROS_DISTRO}-tf2-ros ros-${ROS_DISTRO}-tf2-geometry-msgs ros-${ROS_DISTRO}-joy ros-${ROS_DISTRO}-teleop-twist-joy ros-$ROS_DISTRO-twist-mux
+sudo apt install ros-${ROS_DISTRO}-nav-msgs ros-${ROS_DISTRO}-nav2-bringup ros-${ROS_DISTRO}-tf2-ros ros-${ROS_DISTRO}-tf2-geometry-msgs ros-${ROS_DISTRO}-joy ros-${ROS_DISTRO}-teleop-twist-joy ros-$ROS_DISTRO-twist-mux ros-${ROS_DISTRO}-cv-bridge ros-${ROS_DISTRO}-image-transport ros-${ROS_DISTRO}-vision-opencv
 ```
 Clone & Build
 ```bash
