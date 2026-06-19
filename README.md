@@ -124,6 +124,95 @@ lucia_velocity_smoother
 ```bash
 ros2 run lucia_controller lucia_velocity_smoother_node --ros-args --log-level debug
 ```
+## 📢 Troubleshooting
+### YARP
+Self-diagnostic command
+```bash
+yarp check
+```
+List all active ports
+```bash
+yarp name list
+```
+<details>
+<summary>result</summary>
+```bash
+registration name /lucia-nuc-21 ip 192.168.1.221 port 10002 type tcp
+registration name /robotFace/expression:i ip 192.168.1.221 port 10011 type tcp
+registration name /robotFace/target:i ip 192.168.1.221 port 10006 type tcp
+registration name /robotManager/data/rfid:i ip 192.168.1.221 port 10036 type tcp
+registration name /robotManager/reha/con/image:i ip 192.168.1.221 port 10067 type tcp
+registration name /robotManager/reha/control:o ip 192.168.1.221 port 10063 type tcp
+registration name /robotManager/reha/pos/image:i ip 192.168.1.221 port 10065 type tcp
+registration name /robotManager/reha/state:i ip 192.168.1.221 port 10064 type tcp
+registration name /robotManager/reha/vel/image:i ip 192.168.1.221 port 10066 type tcp
+registration name /robotManager/robot/cart:i ip 192.168.1.221 port 10051 type tcp
+registration name /robotManager/robot/expression:o ip 192.168.1.221 port 10048 type tcp
+registration name /robotManager/robot/map:o ip 192.168.1.221 port 10054 type tcp
+registration name /robotManager/robot/mode:c ip 192.168.1.221 port 10055 type tcp
+registration name /robotManager/robot/park:o ip 192.168.1.221 port 10049 type tcp
+registration name /robotManager/robot/speech:i ip 192.168.1.221 port 10052 type tcp
+registration name /robotManager/robot/urg:o ip 192.168.1.221 port 10047 type tcp
+registration name /robotManager/vision/camera:i ip 192.168.1.221 port 10056 type tcp
+registration name /robotManager/vision/detect:i ip 192.168.1.221 port 10058 type tcp
+registration name /robotManager/vision/frame:o ip 192.168.1.221 port 10060 type tcp
+registration name /robotManager/vision/sound:o ip 192.168.1.221 port 10059 type tcp
+registration name /robotManager/vision/thermo:i ip 192.168.1.221 port 10057 type tcp
+registration name /robotManager/vision/thermo:o ip 192.168.1.221 port 10061 type tcp
+registration name /robotManager/vision/touch:o ip 192.168.1.221 port 10062 type tcp
+registration name /root ip 192.168.1.221 port 10000 type tcp
+registration name /soundGenerator/command:i ip 192.168.1.221 port 10014 type tcp
+registration name /soundGenerator/state:o ip 192.168.1.221 port 10017 type tcp
+registration name /soundGui/command:o ip 192.168.1.221 port 10053 type tcp
+registration name /soundGui/state:i ip 192.168.1.221 port 10050 type tcp
+registration name /tmp/port/1 ip 192.168.1.221 port 10003 type tcp
+registration name /tmp/port/2 ip 192.168.1.221 port 10004 type tcp
+registration name /tmp/port/3 ip 192.168.1.221 port 10005 type tcp
+registration name /touchDetector/mode:i ip 192.168.1.221 port 10013 type tcp
+registration name /touchDetector/sound:o ip 192.168.1.221 port 10019 type tcp
+registration name /touchDetector/touch:i ip 192.168.1.221 port 10012 type tcp
+registration name /urgTracker/cart:o ip 192.168.1.221 port 10032 type tcp
+registration name /urgTracker/command:i ip 192.168.1.221 port 10015 type tcp
+registration name /urgTracker/front/cart:o ip 192.168.1.221 port 10034 type tcp
+registration name /urgTracker/front/polar:o ip 192.168.1.221 port 10037 type tcp
+registration name /urgTracker/front/range:i ip 192.168.1.221 port 10018 type tcp
+registration name /urgTracker/pose:o ip 192.168.1.221 port 10027 type tcp
+registration name /urgTracker/rear/cart:o ip 192.168.1.221 port 10040 type tcp
+registration name /urgTracker/rear/polar:o ip 192.168.1.221 port 10042 type tcp
+registration name /urgTracker/rear/range:i ip 192.168.1.221 port 10021 type tcp
+registration name /urgTracker/robotFace:o ip 192.168.1.221 port 10024 type tcp
+registration name /urgTracker/state:o ip 192.168.1.221 port 10029 type tcp
+registration name /vehicleController/expression:o ip 192.168.1.221 port 10038 type tcp
+registration name /vehicleController/pose:i ip 192.168.1.221 port 10023 type tcp
+registration name /vehicleController/project:i ip 192.168.1.221 port 10030 type tcp
+registration name /vehicleController/reference:i ip 192.168.1.221 port 10026 type tcp
+registration name /vehicleController/velocity:o ip 192.168.1.221 port 10033 type tcp
+registration name /vehicleDriver/assist:i ip 192.168.1.221 port 10045 type tcp
+registration name /vehicleDriver/enable:i ip 192.168.1.221 port 10039 type tcp
+registration name /vehicleDriver/encoder:o ip 192.168.1.221 port 10016 type tcp
+registration name /vehicleDriver/force:o ip 192.168.1.221 port 10020 type tcp
+registration name /vehicleDriver/mode:i ip 192.168.1.221 port 10031 type tcp
+registration name /vehicleDriver/mode:s ip 192.168.1.221 port 10046 type tcp
+registration name /vehicleDriver/park:i ip 192.168.1.221 port 10044 type tcp
+registration name /vehicleDriver/reference:o ip 192.168.1.221 port 10022 type tcp
+registration name /vehicleDriver/remote:i ip 192.168.1.221 port 10043 type tcp
+registration name /vehicleDriver/state:o ip 192.168.1.221 port 10025 type tcp
+registration name /vehicleDriver/touch:i ip 192.168.1.221 port 10035 type tcp
+registration name /vehicleDriver/touch:o ip 192.168.1.221 port 10028 type tcp
+registration name /vehicleDriver/velocity:i ip 192.168.1.221 port 10041 type tcp
+registration name fallback ip 224.2.1.1 port 10000 type mcast
+*** end of message
+```
+</details>
+
+```bash
+yarp exists /port_name
+```
+View the live data stream
+```bash
+yarp read /read/encoder:i /vehicleDriver/encoder:o
+```
+
 
 ## 📜 License
 
@@ -131,7 +220,7 @@ ros2 run lucia_controller lucia_velocity_smoother_node --ros-args --log-level de
 
 - **[iHaruruki](https://github.com/iHaruruki)** — Main author & maintainer
 
-## 🔗 References
+## 📚 References
 - [YARP](https://github.com/robotology/yarp)
 - [YCM](https://github.com/robotology/ycm)
 - [ROS 2 Humble](https://docs.ros.org/en/humble/)
