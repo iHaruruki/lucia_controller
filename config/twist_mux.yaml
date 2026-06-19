@@ -9,11 +9,11 @@ twist_mux:
   ros__parameters:
     topics:
       keyboard:
-        topic   : key_vel
+        topic   : /key_vel
         timeout : 0.5
         priority: 250
       joystick:
-        topic   : joy_vel
+        topic   : /joy_vel
         timeout : 0.5
         priority: 240
       remote_keyboard: # Control commands sent from Makuhari Messe
@@ -29,20 +29,20 @@ twist_mux:
         timeout : 0.5
         priority: 130
       navigation:
-        topic   : nav_vel
+        topic   : /nav_vel
         timeout : 0.5
         priority: 50
 
     locks:
       reject_from_remote: # Rejecting cmd_vel input from Makuhari
-        topic   : reject_makuhari_vel
+        topic   : /reject_makuhari_vel
         timeout : 0.0
         priority: 200
       reject_tatto_vel :
-        topic   : reject_tatto_vel
+        topic   : /reject_tatto_vel
         timeout : 0.0
         priority: 135
       reject_navigation :
-        topic   : reject_nav_vel
+        topic   : /reject_nav_vel
         timeout : 0.0
         priority: 100

@@ -34,7 +34,7 @@ def generate_launch_description():
             description='Default locks config file'),
         DeclareLaunchArgument(
             'cmd_vel_out',
-            default_value='twist_mux/cmd_vel',
+            default_value='/twist_mux/cmd_vel',
             description='cmd vel output topic'),
         DeclareLaunchArgument(
             'use_sim_time',
