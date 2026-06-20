@@ -23,6 +23,7 @@ def generate_launch_description():
             executable='joy_to_cmdvel_node',
             name='lucia_remote_joy_to_cmdvel_node',
             parameters=[{
+                'stamped': True,
                 'linear_x_base': 0.1,
                 'linear_y_base': 0.1,
                 'linear_z_base': 0.1,

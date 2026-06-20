@@ -1,6 +1,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/laser_scan.hpp>
 #include <geometry_msgs/msg/twist.hpp>
+#include <geometry_msgs/msg/twist_stamped.hpp>
 #include <std_msgs/msg/string.hpp>
 #include <cmath>
 #include <iomanip>
@@ -16,17 +17,17 @@ public:
             std::bind(&SafeVelocityControllerNode::scan_callback, this, std::placeholders::_1));
         
         // /cmd_vel トピックを購読
-        cmd_vel_subscription_ = this->create_subscription<geometry_msgs::msg::Twist>(
+        cmd_vel_subscription_ = this->create_subscription<geometry_msgs::msg::TwistStamped>(
             "/cmd_vel", 10,
             std::bind(&SafeVelocityControllerNode::cmd_vel_callback, this, std::placeholders::_1));
         
         // /cmd_vel_safe トピックを配信
-        safe_velocity_publisher_ = this->create_publisher<geometry_msgs::msg::Twist>("/collision_monitor/cmd_vel", 10);
+        safe_velocity_publisher_ = this->create_publisher<geometry_msgs::msg::TwistStamped>("/collision_monitor/cmd_vel", 10);
         
         // 介入状態を配信
         intervention_publisher_ = this->create_publisher<std_msgs::msg::String>("/intervention_status", 10);
         
-        RCLCPP_INFO(this->get_logger(), 
+        RCLCPP_DEBUG(this->get_logger(), 
             "Safe Velocity Controller Node started.\n"
             "Robot Radius: %.2f m\n"
             "Collision Threshold: %.2f m\n"
@@ -50,8 +51,8 @@ private:
     };
 
     rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr scan_subscription_;
-    rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_subscription_;
-    rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr safe_velocity_publisher_;
+    rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr cmd_vel_subscription_;
+    rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr safe_velocity_publisher_;
     rclcpp::Publisher<std_msgs::msg::String>::SharedPtr intervention_publisher_;
     
     DirectionCollisionStatus collision_status_;
@@ -146,7 +147,7 @@ private:
                << "BACK: " << (collision_status_.back_collision ? "COLLISION" : "SAFE") << " (" << collision_status_.back_min_dist << " m)\n"
                << "LEFT: " << (collision_status_.left_collision ? "COLLISION" : "SAFE") << " (" << collision_status_.left_min_dist << " m)\n"
                << "Last cmd_vel: x=" << last_cmd_vel_.linear.x << ", y=" << last_cmd_vel_.linear.y << "\n"
-               << "Safe cmd_vel: x=" << safe_cmd.linear.x << ", y=" << safe_cmd.linear.y;
+               << "Safe cmd_vel: x=" << safe_cmd.twist.linear.x << ", y=" << safe_cmd.twist.linear.y;
             status_msg.data = ss.str();
             intervention_publisher_->publish(status_msg);
             
@@ -166,21 +167,30 @@ private:
         }
     }
 
-    void cmd_vel_callback(const geometry_msgs::msg::Twist::SharedPtr msg) {
+    void cmd_vel_callback(const geometry_msgs::msg::TwistStamped::SharedPtr msg) {
         std::lock_guard<std::mutex> lock(data_mutex_);
-        
-        // 最新のコマンドを保存
-        last_cmd_vel_ = *msg;
+
+        std::string frame_id = msg->header.frame_id;
+        int32_t sec = msg->header.stamp.sec;
+        uint32_t nanosec = msg->header.stamp.nanosec;
         
         RCLCPP_DEBUG(this->get_logger(),
             "[CMD_VEL] Received: x=%.3f, y=%.3f, z=%.3f",
-            msg->linear.x, msg->linear.y, msg->angular.z);
+            msg->twist.linear.x, msg->twist.linear.y, msg->twist.angular.z);
+        
+        // 最後の速度コマンドを保存
+        last_cmd_vel_ = msg->twist;
         
         // 現在の衝突状態で安全なコマンドを生成
-        auto safe_cmd = generate_safe_velocity(*msg);
+        auto safe_cmd = generate_safe_velocity(msg->twist.linear.x, msg->twist.linear.y, msg->twist.angular.z);
         
-        // 安全なコマンドを発行
-        safe_velocity_publisher_->publish(safe_cmd);
+        // TwistStamped で安全なコマンドを発行
+        geometry_msgs::msg::TwistStamped safe_cmd_stamped;
+        safe_cmd_stamped.header.stamp = msg->header.stamp;
+        safe_cmd_stamped.header.frame_id = msg->header.frame_id;
+        safe_cmd_stamped.twist = safe_cmd;
+        
+        safe_velocity_publisher_->publish(safe_cmd_stamped);
         
         RCLCPP_DEBUG(this->get_logger(),
             "[SAFE_VEL] Published: x=%.3f, y=%.3f, z=%.3f | Collision: F=%d, B=%d, L=%d, R=%d",
@@ -191,35 +201,98 @@ private:
             collision_status_.right_collision);
     }
 
-    // 安全な速度コマンドを生成
-    geometry_msgs::msg::Twist generate_safe_velocity(const geometry_msgs::msg::Twist& cmd) {
-        auto safe_cmd = cmd;
+    // 安全な速度コマンドを生成 (Twist オブジェクトを受け取る)
+    geometry_msgs::msg::TwistStamped generate_safe_velocity(const geometry_msgs::msg::Twist& cmd) {
+        geometry_msgs::msg::TwistStamped safe_cmd_stamped;
+        safe_cmd_stamped.twist.linear.x = cmd.linear.x;
+        safe_cmd_stamped.twist.linear.y = cmd.linear.y;
+        safe_cmd_stamped.twist.linear.z = cmd.linear.z;
+        safe_cmd_stamped.twist.angular.x = cmd.angular.x;
+        safe_cmd_stamped.twist.angular.y = cmd.angular.y;
+        safe_cmd_stamped.twist.angular.z = cmd.angular.z;
+        
         bool intervention_made = false;
         std::vector<std::string> blocked_directions;
 
         // 前進が衝突方向に該当するか確認
         if (collision_status_.front_collision && cmd.linear.x > 0.0) {
-            safe_cmd.linear.x = 0.0;
+            safe_cmd_stamped.twist.linear.x = 0.0;
             intervention_made = true;
             blocked_directions.push_back("FRONT");
         }
 
         // 後進が衝突方向に該当するか確認
         if (collision_status_.back_collision && cmd.linear.x < 0.0) {
-            safe_cmd.linear.x = 0.0;
+            safe_cmd_stamped.twist.linear.x = 0.0;
             intervention_made = true;
             blocked_directions.push_back("BACK");
         }
 
         // 左方向への移動が衝突方向に該当するか確認
         if (collision_status_.left_collision && cmd.linear.y > 0.0) {
-            safe_cmd.linear.y = 0.0;
+            safe_cmd_stamped.twist.linear.y = 0.0;
             intervention_made = true;
             blocked_directions.push_back("LEFT");
         }
 
         // 右方向への移動が衝突方向に該当するか確認
         if (collision_status_.right_collision && cmd.linear.y < 0.0) {
+            safe_cmd_stamped.twist.linear.y = 0.0;
+            intervention_made = true;
+            blocked_directions.push_back("RIGHT");
+        }
+
+        // 介入があればログ出力
+        if (intervention_made) {
+            std::stringstream ss;
+            ss << "Blocked: ";
+            for (size_t i = 0; i < blocked_directions.size(); i++) {
+                ss << blocked_directions[i];
+                if (i < blocked_directions.size() - 1) ss << ", ";
+            }
+            RCLCPP_WARN(this->get_logger(), "[INTERVENTION] %s | Original: x=%.3f, y=%.3f → Safe: x=%.3f, y=%.3f",
+                ss.str().c_str(), cmd.linear.x, cmd.linear.y, safe_cmd_stamped.twist.linear.x, safe_cmd_stamped.twist.linear.y);
+        }
+
+        return safe_cmd_stamped;
+    }
+
+    // 安全な速度コマンドを生成 (個別パラメータを受け取る)
+    geometry_msgs::msg::Twist generate_safe_velocity(float linear_x, float linear_y, float angular_z) {
+        geometry_msgs::msg::Twist safe_cmd;
+        safe_cmd.linear.x = linear_x;
+        safe_cmd.linear.y = linear_y;
+        safe_cmd.linear.z = 0.0f;
+        safe_cmd.angular.x = 0.0f;
+        safe_cmd.angular.y = 0.0f;
+        safe_cmd.angular.z = angular_z;
+        
+        bool intervention_made = false;
+        std::vector<std::string> blocked_directions;
+
+        // 前進が衝突方向に該当するか確認
+        if (collision_status_.front_collision && linear_x > 0.0) {
+            safe_cmd.linear.x = 0.0;
+            intervention_made = true;
+            blocked_directions.push_back("FRONT");
+        }
+
+        // 後進が衝突方向に該当するか確認
+        if (collision_status_.back_collision && linear_x < 0.0) {
+            safe_cmd.linear.x = 0.0;
+            intervention_made = true;
+            blocked_directions.push_back("BACK");
+        }
+
+        // 左方向への移動が衝突方向に該当するか確認
+        if (collision_status_.left_collision && linear_y > 0.0) {
+            safe_cmd.linear.y = 0.0;
+            intervention_made = true;
+            blocked_directions.push_back("LEFT");
+        }
+
+        // 右方向への移動が衝突方向に該当するか確認
+        if (collision_status_.right_collision && linear_y < 0.0) {
             safe_cmd.linear.y = 0.0;
             intervention_made = true;
             blocked_directions.push_back("RIGHT");
@@ -234,7 +307,7 @@ private:
                 if (i < blocked_directions.size() - 1) ss << ", ";
             }
             RCLCPP_WARN(this->get_logger(), "[INTERVENTION] %s | Original: x=%.3f, y=%.3f → Safe: x=%.3f, y=%.3f",
-                ss.str().c_str(), cmd.linear.x, cmd.linear.y, safe_cmd.linear.x, safe_cmd.linear.y);
+                ss.str().c_str(), linear_x, linear_y, safe_cmd.linear.x, safe_cmd.linear.y);
         }
 
         return safe_cmd;

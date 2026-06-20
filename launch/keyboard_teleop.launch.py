@@ -11,7 +11,7 @@ def generate_launch_description():
             prefix='gnome-terminal --',
             output='screen',
             parameters=[{
-                'stamped': False,
+                'stamped': True,
                 'speed': 0.10,
                 'turn': 0.30,
             }],
