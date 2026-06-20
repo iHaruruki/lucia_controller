@@ -1,6 +1,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/joy.hpp"
 #include "geometry_msgs/msg/twist.hpp"
+#include "geometry_msgs/msg/twist_stamped.hpp"
 #include "std_msgs/msg/bool.hpp"
 
 class JoyCmdVelNode : public rclcpp::Node {
@@ -26,7 +27,7 @@ public:
     joy_subscriber_ = this->create_subscription<sensor_msgs::msg::Joy>(
       "/joy", 10, std::bind(&JoyCmdVelNode::joyCallback, this, std::placeholders::_1));
     
-    cmd_vel_publisher_ = this->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);
+    cmd_vel_publisher_ = this->create_publisher<geometry_msgs::msg::TwistStamped>("/cmd_vel", 10);
     reject_nav_vel_publisher_ = this->create_publisher<std_msgs::msg::Bool>("/reject_nav_vel", 10);
     
     RCLCPP_INFO(this->get_logger(), "Joy to Cmd_vel node started");
@@ -60,7 +61,7 @@ private:
   static constexpr int BUTTON_PS = 10;
   
   rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joy_subscriber_;
-  rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_publisher_;
+  rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr cmd_vel_publisher_;
   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr reject_nav_vel_publisher_;
   
   double linear_x_base_;
@@ -69,6 +70,9 @@ private:
   double angular_x_base_;
   double angular_y_base_;
   double angular_z_base_;
+  int32_t sec;
+  uint32_t nanosec;
+  std::string frame_id;
 
   double speed_multiplier_ = 1.0;
 
@@ -147,13 +151,15 @@ private:
   }
 
   void publishTwist(double linear_x, double linear_y, double linear_z, double angular_x, double angular_y, double angular_z) {
-    auto twist_msg = std::make_unique<geometry_msgs::msg::Twist>();
-    twist_msg->linear.x = linear_x;
-    twist_msg->linear.y = linear_y;
-    twist_msg->linear.z = linear_z;
-    twist_msg->angular.x = angular_x;
-    twist_msg->angular.y = angular_y;
-    twist_msg->angular.z = angular_z;
+    auto twist_msg = std::make_unique<geometry_msgs::msg::TwistStamped>();
+    twist_msg->header.stamp = this->now();
+    twist_msg->header.frame_id = "dualshock4";
+    twist_msg->twist.linear.x = linear_x;
+    twist_msg->twist.linear.y = linear_y;
+    twist_msg->twist.linear.z = linear_z;
+    twist_msg->twist.angular.x = angular_x;
+    twist_msg->twist.angular.y = angular_y;
+    twist_msg->twist.angular.z = angular_z;
     
     cmd_vel_publisher_->publish(std::move(twist_msg));
   }
