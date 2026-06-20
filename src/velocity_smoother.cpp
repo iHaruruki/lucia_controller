@@ -1,5 +1,6 @@
 #include <rclcpp/rclcpp.hpp>
 #include <geometry_msgs/msg/twist.hpp>
+#include <geometry_msgs/msg/twist_stamped.hpp>
 
 #include <algorithm>
 #include <chrono>
@@ -47,8 +48,8 @@ public:
         update_frequency_ = std::max(1, update_frequency_);
         update_period_ms_ = std::max(1, 1000 / update_frequency_);
 
-        // Subscriber
-        cmd_vel_sub_ = this->create_subscription<geometry_msgs::msg::Twist>(
+        // Subscriber - now subscribing to TwistStamped
+        cmd_vel_sub_ = this->create_subscription<geometry_msgs::msg::TwistStamped>(
             "cmd_vel",
             10,
             std::bind(&SpeedSmoothingNode::cmdVelCallback, this, std::placeholders::_1));
@@ -75,7 +76,7 @@ public:
     }
 
 private:
-    rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_sub_;
+    rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr cmd_vel_sub_;
     rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr smoothed_cmd_vel_pub_;
     rclcpp::TimerBase::SharedPtr timer_;
 
@@ -99,12 +100,12 @@ private:
     int update_period_ms_;
     int update_frequency_;
 
-    void cmdVelCallback(const geometry_msgs::msg::Twist::SharedPtr msg)
+    void cmdVelCallback(const geometry_msgs::msg::TwistStamped::SharedPtr msg)
     {
-        // 受信した目標速度を最大速度で制限
-        target_linear_vel_x_ = std::clamp(msg->linear.x, -max_linear_vel_x_, max_linear_vel_x_);
-        target_linear_vel_y_ = std::clamp(msg->linear.y, -max_linear_vel_y_, max_linear_vel_y_);
-        target_angular_vel_ = std::clamp(msg->angular.z, -max_angular_vel_, max_angular_vel_);
+        // Access twist data from TwistStamped message structure
+        target_linear_vel_x_ = std::clamp(msg->twist.linear.x, -max_linear_vel_x_, max_linear_vel_x_);
+        target_linear_vel_y_ = std::clamp(msg->twist.linear.y, -max_linear_vel_y_, max_linear_vel_y_);
+        target_angular_vel_ = std::clamp(msg->twist.angular.z, -max_angular_vel_, max_angular_vel_);
 
         RCLCPP_DEBUG(this->get_logger(),
                      "Received cmd_vel: target_linear_x=%.3f, target_linear_y=%.3f, target_angular=%.3f",
