@@ -71,7 +71,7 @@ def generate_launch_description():
     args = [
         DeclareLaunchArgument('device_type', default_value='camera'),
         DeclareLaunchArgument('camera_name', default_value='camera'),
-        DeclareLaunchArgument('depth_registration', default_value='false'),
+        DeclareLaunchArgument('depth_registration', default_value='true'),
         DeclareLaunchArgument('serial_number', default_value=''),
         DeclareLaunchArgument('usb_port', default_value=''),
         DeclareLaunchArgument('device_num', default_value='1'),
@@ -93,7 +93,7 @@ def generate_launch_description():
         DeclareLaunchArgument('enable_color', default_value='true'),
         DeclareLaunchArgument('color_qos', default_value='default'),
         DeclareLaunchArgument('color_camera_info_qos', default_value='default'),
-        DeclareLaunchArgument('enable_color_auto_exposure_priority', default_value='false'),
+        DeclareLaunchArgument('enable_color_auto_exposure_priority', default_value='true'),
         DeclareLaunchArgument('color_rotation', default_value='-1'),#color rotation degree : 0, 90, 180, 270
         DeclareLaunchArgument('color_flip', default_value='false'),
         DeclareLaunchArgument('color_mirror', default_value='false'),
@@ -114,9 +114,9 @@ def generate_launch_description():
         DeclareLaunchArgument('color_contrast', default_value='-1'),
         DeclareLaunchArgument('color_hue', default_value='-1'),
         DeclareLaunchArgument('color_backlight_compensation', default_value='-1'),#range: 0 - 6, default: 3
-        DeclareLaunchArgument('color_anti_flicker', default_value='false'),
-        DeclareLaunchArgument('color_powerline_freq', default_value=''),#disable ,50hz ,60hz ,auto
-        DeclareLaunchArgument('enable_color_decimation_filter', default_value='false'),
+        DeclareLaunchArgument('color_anti_flicker', default_value='true'),
+        DeclareLaunchArgument('color_powerline_freq', default_value='auto'),#disable ,50hz ,60hz ,auto
+        DeclareLaunchArgument('enable_color_decimation_filter', default_value='true'),
         DeclareLaunchArgument('color_decimation_filter_scale', default_value='-1'),
         DeclareLaunchArgument('color_denoising_level', default_value='-1'),#0: Auto; 1-8: higher values indicate stronger denoising.
         #Note: The color_denoising_level configuration is supported only when AE is enabled, and requires new firmware support.
@@ -128,7 +128,7 @@ def generate_launch_description():
         DeclareLaunchArgument('enable_depth', default_value='true'),
         DeclareLaunchArgument('depth_qos', default_value='default'),
         DeclareLaunchArgument('depth_camera_info_qos', default_value='default'),
-        DeclareLaunchArgument('enable_depth_auto_exposure_priority', default_value='false'),
+        DeclareLaunchArgument('enable_depth_auto_exposure_priority', default_value='true'),
         DeclareLaunchArgument('depth_precision', default_value=''),
         DeclareLaunchArgument('depth_rotation', default_value='-1'),#depth rotation degree : 0, 90, 180, 270
         DeclareLaunchArgument('depth_flip', default_value='false'),
@@ -167,12 +167,12 @@ def generate_launch_description():
         DeclareLaunchArgument('ir_gain', default_value='-1'),
         DeclareLaunchArgument('ir_ae_max_exposure', default_value='-1'),
         DeclareLaunchArgument('ir_brightness', default_value='-1'),
-        DeclareLaunchArgument('enable_sync_output_accel_gyro', default_value='false'),
-        DeclareLaunchArgument('enable_accel', default_value='false'),
+        DeclareLaunchArgument('enable_sync_output_accel_gyro', default_value='true'),
+        DeclareLaunchArgument('enable_accel', default_value='true'),
         DeclareLaunchArgument('enable_accel_data_correction', default_value='true'),
         DeclareLaunchArgument('accel_rate', default_value='200hz'),
         DeclareLaunchArgument('accel_range', default_value='4g'),
-        DeclareLaunchArgument('enable_gyro', default_value='false'),
+        DeclareLaunchArgument('enable_gyro', default_value='true'),
         DeclareLaunchArgument('enable_gyro_data_correction', default_value='true'),
         DeclareLaunchArgument('gyro_rate', default_value='200hz'),
         DeclareLaunchArgument('gyro_range', default_value='1000dps'),
