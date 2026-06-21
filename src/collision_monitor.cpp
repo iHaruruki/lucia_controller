@@ -13,7 +13,7 @@ public:
     SafeVelocityControllerNode() : Node("safe_velocity_controller") {
         // /scan トピックを購読
         scan_subscription_ = this->create_subscription<sensor_msgs::msg::LaserScan>(
-            "/scan", 10,
+            "/scan", rclcpp::SensorDataQoS(),
             std::bind(&SafeVelocityControllerNode::scan_callback, this, std::placeholders::_1));
         
         // /cmd_vel トピックを購読
