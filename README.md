@@ -13,7 +13,7 @@
   - `/cmd_vel` _(geometry_msgs/Twist)_
   - `/odom` _(nav_msgs/Odometry)_
 
-![Node & Topics](/manual/node_topic_conection/node_motor.png)
+![Node & Topics](./manual/lucia_controller/node_motor.png)
 
 ## 📋 Requirements
 - **OS:** Ubuntu 24.04
