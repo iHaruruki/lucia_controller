@@ -7,6 +7,7 @@
 #include "tf2/LinearMath/Quaternion.h"
 #include "tf2/LinearMath/Matrix3x3.h"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
+#include "tf2_ros/transform_broadcaster.hpp"
 
 class Imu3dOdometry : public rclcpp::Node
 {
@@ -17,6 +18,7 @@ public:
         odom_pub_ = this->create_publisher<nav_msgs::msg::Odometry>("/odom", 10);
         imu_sub_ = this->create_subscription<sensor_msgs::msg::Imu>(
             "/imu/data", 10, std::bind(&Imu3dOdometry::imuCallback, this, std::placeholders::_1));
+        tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
 
         // Initialize state variables to zero
         x_ = y_ = z_ = 0.0;
@@ -90,11 +92,24 @@ private:
         odom.twist.twist.angular = msg->angular_velocity;
 
         odom_pub_->publish(odom);
+
+        geometry_msgs::msg::TransformStamped transformStamped;
+        transformStamped.header.stamp = current_time;
+        transformStamped.header.frame_id = "odom";
+        transformStamped.child_frame_id = msg->header.frame_id;
+
+        transformStamped.transform.translation.x = x_;
+        transformStamped.transform.translation.y = y_;
+        transformStamped.transform.translation.z = z_;
+        transformStamped.transform.rotation = msg->orientation;
+
+        tf_broadcaster_->sendTransform(transformStamped);
     }
 
     // Node publishers and subscribers
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
     rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr imu_sub_;
+    std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 
     // Odometry State Variables
     double x_, y_, z_;
