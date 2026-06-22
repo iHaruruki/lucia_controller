@@ -61,6 +61,15 @@ ament_target_dependencies(color_compressed_viewr_node rclcpp std_msgs sensor_msg
 add_executable(depth_compressed_viewr_node src/depth_compressed_viewer.cpp)
 ament_target_dependencies(depth_compressed_viewr_node rclcpp std_msgs sensor_msgs cv_bridge OpenCV)
 
+add_executable(imu_3d_odometry_node src/imu_odom.cpp)
+ament_target_dependencies(imu_3d_odometry_node
+  rclcpp
+  sensor_msgs
+  nav_msgs
+  tf2
+  tf2_geometry_msgs
+)
+
 install(TARGETS
   lucia_controller_node
   lucia_minimal_controller_node
@@ -69,7 +78,8 @@ install(TARGETS
   joy_to_cmdvel_node
   lucia_collision_monitor_node
   color_compressed_viewr_node
-  depth_compressed_viewr_node 
+  depth_compressed_viewr_node
+  imu_3d_odometry_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
