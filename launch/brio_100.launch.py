@@ -13,10 +13,22 @@ def generate_launch_description():
         default_value='/dev/video0',
         description='Video device path'
     )
+
+    declare_image_height_arg = DeclareLaunchArgument(
+        'image_height',
+        default_value='480',
+        description='image_height'
+    )
+
+    declare_image_width_arg = DeclareLaunchArgument(
+        'image_width',
+        default_value='640',
+        description='image_width'
+    )
     
     declare_framerate_arg = DeclareLaunchArgument(
         'framerate',
-        default_value='15.0',
+        default_value='30.0',
         description='Camera framerate'
     )
     
@@ -44,6 +56,8 @@ def generate_launch_description():
     exposure = LaunchConfiguration('exposure')
     brightness = LaunchConfiguration('brightness')
     white_balance = LaunchConfiguration('white_balance')
+    image_height = LaunchConfiguration('image_height')
+    image_width = LaunchConfiguration('image_width')
     
     return LaunchDescription([
         declare_video_device_arg,
@@ -51,6 +65,8 @@ def generate_launch_description():
         declare_exposure_arg,
         declare_brightness_arg,
         declare_white_balance_arg,
+        declare_image_height_arg,
+        declare_image_width_arg,
         
         Node(
             package='usb_cam',
@@ -78,6 +94,8 @@ def generate_launch_description():
                 'video_device': video_device,
                 'white_balance': white_balance,
                 'image_raw.ffmpeg.encoder.ffmpeg.encoder': 'h264',
+                'image_height': image_height,
+                'image_width': image_width,
             }],
             remappings=[
                 ('/camera_info', '/brio_100/camera_info'),
