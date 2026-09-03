@@ -21,7 +21,7 @@ def generate_launch_description():
         default_value=PathJoinSubstitution([
             FindPackageShare('lucia_controller'),
             'config',
-            'ekf.yaml'
+            'ekf_minimum.yaml'
         ]),
         description="Path to EKF parameter file"
     )
