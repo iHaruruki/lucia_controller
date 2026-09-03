@@ -79,8 +79,9 @@ yarp namespace /lucia_g
 Install robot-localization
 ```bash
 sudo apt update
-sudo apt install ros-${ROS_DISTRO}-nav-msgs ros-${ROS_DISTRO}-nav2-bringup ros-${ROS_DISTRO}-tf2-ros ros-${ROS_DISTRO}-tf2-geometry-msgs ros-${ROS_DISTRO}-joy ros-${ROS_DISTRO}-teleop-twist-joy ros-$ROS_DISTRO-twist-mux ros-${ROS_DISTRO}-cv-bridge ros-${ROS_DISTRO}-image-transport ros-${ROS_DISTRO}-vision-opencv ros-${ROS_DISTRO}-imu-complementary-filter ros-${ROS_DISTRO}-imu-tools ros-${ROS_DISTRO}-usb-cam
+sudo apt install ros-${ROS_DISTRO}-nav-msgs ros-${ROS_DISTRO}-nav2-bringup ros-${ROS_DISTRO}-tf2-ros ros-${ROS_DISTRO}-tf2-geometry-msgs ros-${ROS_DISTRO}-joy ros-${ROS_DISTRO}-teleop-twist-joy ros-$ROS_DISTRO-twist-mux ros-${ROS_DISTRO}-cv-bridge ros-${ROS_DISTRO}-image-transport ros-${ROS_DISTRO}-vision-opencv ros-${ROS_DISTRO}-imu-complementary-filter ros-${ROS_DISTRO}-imu-tools ros-${ROS_DISTRO}-usb-cam ros-${ROS_DISTRO}-robot-localization
 ```
+
 Clone & Build
 ```bash
 cd ~/ros2_ws/src  #Go to ros workspace
