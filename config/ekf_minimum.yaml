@@ -1,6 +1,7 @@
 ekf_node:
   ros__parameters:
     two_d_mode: true
+    publish_tf: true
     world_frame: odom
     odom_frame: odom
     base_link_frame: base_footprint
@@ -11,7 +12,7 @@ ekf_node:
                    true,  true,  false,
                    false, false, true,
                    false, false, false]
-    odom0_differential: false
+    odom0_differential: true
     odom0_relative: false
 
     imu0: /imu/data
